@@ -55,6 +55,15 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('🚨 [AuthContext] Error fetching DB profile:', error.message);
+      // Fall back to locally cached profile to prevent logouts during server sleep/wake or minor connection drops
+      const cached = localStorage.getItem('tsrv_cached_profile');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          return null;
+        }
+      }
     }
     return null;
   };
@@ -108,6 +117,7 @@ export const AuthProvider = ({ children }) => {
       setUserProfile(data.user);
       setCurrentUser({ uid: data.user.id, email: data.user.email });
 
+      localStorage.setItem('tsrv_session_token', data.token);
       localStorage.setItem('tsrv_role', data.user.role);
       localStorage.setItem('tsrv_cached_profile', JSON.stringify(data.user));
 
@@ -158,6 +168,7 @@ export const AuthProvider = ({ children }) => {
       setUserProfile(data.user);
       setCurrentUser({ uid: data.user.id, email: data.user.email });
 
+      localStorage.setItem('tsrv_session_token', data.token);
       localStorage.setItem('tsrv_role', 'student');
       localStorage.setItem('tsrv_cached_profile', JSON.stringify(data.user));
       
