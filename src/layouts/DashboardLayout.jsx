@@ -31,6 +31,41 @@ export default function DashboardLayout() {
   const pathname = location.pathname;
   const { userProfile, logout } = useAuth();
 
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'critical',
+      message: '🚨 CRITICAL: Anti-ragging panic signal received in regional cluster.',
+      time: '3 mins ago',
+      read: false
+    },
+    {
+      id: 2,
+      type: 'circular',
+      message: '📢 CENTRAL COMMAND: Calibration of statewide coordinate keys complete.',
+      time: '2 hours ago',
+      read: false
+    },
+    {
+      id: 3,
+      type: 'success',
+      message: '✅ LEDGER RESOLVED: Grievance #104 status updated to AUDITED.',
+      time: '1 day ago',
+      read: true
+    }
+  ]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const handleMarkAllRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const handleToggleRead = (id) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, read: !n.read } : n));
+  };
+
   // Dynamically resolve and track the active role state based on PostgreSQL auth context
   const getActiveRole = () => {
     if (!userProfile) return 'student';
@@ -323,56 +358,144 @@ export default function DashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative z-10 h-screen">
         
         {/* Top bar dashboard control strips */}
-        <header className="sticky top-0 z-20 w-full px-4 sm:px-6 py-4">
-          <div className="glass-panel-light dark:glass-panel-dark glass-card-border-light dark:glass-card-border-dark px-4 sm:px-6 py-3.5 rounded-2xl flex items-center justify-between shadow-premium-light dark:shadow-premium-dark">
+        <header className="sticky top-0 z-30 w-full px-4 sm:px-6 py-4">
+          <div className="glass-panel-light dark:glass-panel-dark glass-card-border-light dark:glass-card-border-dark px-4 sm:px-6 py-3 rounded-2xl flex items-center justify-between shadow-premium-light dark:shadow-premium-dark relative">
             
-            {/* Sidebar mobile toggle trigger */}
-            <div className="flex items-center gap-4">
+            {/* Sidebar mobile toggle trigger & Official Branding */}
+            <div className="flex items-center gap-3.5">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-200/50 dark:border-slate-880"
+                className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-200/50 dark:border-slate-800"
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <div className="flex flex-col text-left">
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-850 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  State Governance Terminal
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 animate-pulse">
-                    Live Node
+              
+              {/* Logo and Compact Title Group */}
+              <div className="flex items-center gap-2.5">
+                <img 
+                  src="/trsv.jpeg" 
+                  alt="TSRV State Logo" 
+                  className="w-8 h-8 rounded-full object-cover border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.15)] shrink-0"
+                />
+                <div className="flex flex-col text-left">
+                  <h1 className="text-xs sm:text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider flex items-center gap-2 leading-none">
+                    <span className="hidden sm:inline">State Governance Terminal</span>
+                    <span className="sm:hidden">TSRV OS</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 animate-pulse">
+                      Live
+                    </span>
+                  </h1>
+                  <span className="text-[8px] text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden xs:block mt-0.5">
+                    Central Telemetry Node
                   </span>
-                </h1>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 hidden sm:block mt-0.5">
-                  Statewide Protection Telemetry Node
-                </p>
+                </div>
               </div>
             </div>
 
-            {/* Quick Action Widgets */}
-            <div className="flex items-center gap-3">
-              {/* Notification simulated indicator */}
-              <div className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors duration-200 cursor-pointer">
-                <Bell className="w-4.5 h-4.5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_5px_rgba(244,63,94,0.6)]" />
+            {/* Quick Action Widgets & Interactive Notification Tray */}
+            <div className="flex items-center gap-2.5">
+              
+              {/* Notification Bell Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  className={`relative p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    notificationsOpen
+                      ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-600 dark:text-cyan-400 shadow-glow-cyan/15'
+                      : 'bg-slate-100 dark:bg-slate-900 border-slate-200/50 dark:border-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-900 shadow-[0_0_5px_rgba(244,63,94,0.6)] animate-pulse" />
+                  )}
+                </button>
+
+                {/* Notifications Popover */}
+                <AnimatePresence>
+                  {notificationsOpen && (
+                    <>
+                      {/* Click outside backdrop close layer */}
+                      <div className="fixed inset-0 z-35" onClick={() => setNotificationsOpen(false)} />
+                      
+                      <motion.div
+                        initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-3.5 w-80 sm:w-96 rounded-2xl glass-panel-light dark:glass-panel-dark border border-slate-200/60 dark:border-slate-850 shadow-2xl p-4 text-left z-40"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-2.5 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-xs text-slate-800 dark:text-white uppercase tracking-wider">
+                              Command Alerts
+                            </span>
+                            {unreadCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                {unreadCount} New
+                              </span>
+                            )}
+                          </div>
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={handleMarkAllRead}
+                              className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer uppercase tracking-wider"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto pr-1 custom-sidebar-scrollbar">
+                          {notifications.length > 0 ? (
+                            notifications.map((n) => (
+                              <div
+                                key={n.id}
+                                onClick={() => handleToggleRead(n.id)}
+                                className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-1.5 ${
+                                  n.read
+                                    ? 'bg-slate-50/40 dark:bg-slate-900/20 border-slate-200/30 dark:border-slate-850/50 opacity-60'
+                                    : 'bg-cyan-500/5 dark:bg-cyan-950/20 border-cyan-500/25 dark:border-cyan-500/20 shadow-sm'
+                                }`}
+                              >
+                                <p className={`text-xs leading-relaxed ${n.read ? 'text-slate-500 dark:text-slate-400 font-semibold' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>
+                                  {n.message}
+                                </p>
+                                <span className="text-[9px] text-slate-400 dark:text-slate-550 font-bold self-end">
+                                  {n.time}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 italic">
+                              No recent command notifications.
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Avatar widget details */}
-              <div className="flex items-center gap-2 bg-slate-100/80 border border-slate-200/50 dark:bg-slate-900/60 dark:border-slate-800/60 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-2 bg-slate-100/80 border border-slate-200/50 dark:bg-slate-900/60 dark:border-slate-800/60 px-2.5 py-1.5 rounded-xl shrink-0">
                 {userProfile?.profile_image ? (
                   <img 
                     src={userProfile.profile_image} 
                     alt={userProfile.full_name} 
-                    className="w-6.5 h-6.5 rounded-lg object-cover shadow-glow-cyan shrink-0"
+                    className="w-6 h-6 rounded-lg object-cover shadow-glow-cyan shrink-0"
                   />
                 ) : (
-                  <div className="w-6.5 h-6.5 rounded-lg bg-gradient-to-tr from-sky-500 to-cyan-400 text-white font-black text-[10px] flex items-center justify-center uppercase shadow-glow-cyan shrink-0">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-sky-500 to-cyan-400 text-white font-black text-[10px] flex items-center justify-center uppercase shadow-glow-cyan shrink-0">
                     {userProfile?.full_name ? userProfile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'ST'}
                   </div>
                 )}
                 <div className="hidden md:flex flex-col text-left">
-                  <span className="text-[11px] font-extrabold text-slate-700 dark:text-white truncate max-w-[120px]">
+                  <span className="text-[10px] font-extrabold text-slate-700 dark:text-white truncate max-w-[90px]">
                     {userProfile?.full_name || 'Advocate'}
                   </span>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-wider">
+                  <span className="text-[8px] text-slate-400 uppercase tracking-wider leading-none mt-0.5">
                     {userProfile?.role === 'supreme_admin' ? 'Supreme Leader' : userProfile?.role || 'Student'}
                   </span>
                 </div>
