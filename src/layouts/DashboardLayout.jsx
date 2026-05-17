@@ -58,7 +58,12 @@ export default function DashboardLayout() {
           path: `/dashboard/${activeRole}`,
           icon: currentOverview.icon,
           desc: currentOverview.desc
-        },
+        }
+      ]
+    },
+    {
+      category: 'Identity & Credentials',
+      links: [
         {
           name: 'Digital ID Card',
           path: '/dashboard/digital-id',
