@@ -101,7 +101,10 @@ router.post('/send-otp', async (req, res) => {
       },
       connectionTimeout: 5000,
       greetingTimeout: 4000,
-      socketTimeout: 6000
+      socketTimeout: 6000,
+      tls: {
+        rejectUnauthorized: false
+      }
     });
 
     const mailOptions = {
