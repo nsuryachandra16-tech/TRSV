@@ -33,8 +33,22 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // Mitigate payload attacks
 
-// Enterprise Security Hardening
-app.use(helmet());
+// Enterprise Security Hardening with Leaflet CSP Whitelist Exceptions
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https://unpkg.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org"],
+      connectSrc: ["'self'", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", "data:"],
+      upgradeInsecureRequests: []
+    }
+  }
+}));
 app.use(xss());
 
 // Advanced DDOS & Brute-Force Protection Rate Limiter
