@@ -77,72 +77,66 @@ router.post('/send-otp', async (req, res) => {
 
   console.log(`🔑 [Email OTP] Generated code ${otpCode} for student node: ${cleanEmail}`);
 
-  // Dual-mode dispatcher: Real Nodemailer SMTP delivery vs secure client fallback
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
 
-  if (smtpUser && smtpPass) {
-    try {
-      const nodemailerModule = await import('nodemailer');
-      const nodemailer = nodemailerModule.default || nodemailerModule;
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_PORT === '465',
-        auth: {
-          user: smtpUser,
-          pass: smtpPass
-        },
-        connectionTimeout: 3000, // 3s max connection timeout
-        greetingTimeout: 2000,   // 2s greeting timeout
-        socketTimeout: 4000      // 4s socket timeout
-      });
-
-      const mailOptions = {
-        from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
-        to: cleanEmail,
-        subject: `[TSRV] Your Student Advocate Verification Code: ${otpCode}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff;">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h2 style="color: #06b6d4; margin: 0;">TSRV Governance Grid</h2>
-              <span style="font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">Telangana Rakshana Sena Vidyarthi</span>
-            </div>
-            <p style="font-size: 14px; color: #334155; line-height: 1.6;">Hello advocate,</p>
-            <p style="font-size: 14px; color: #334155; line-height: 1.6;">To verify your email address and authorize your campus advocacy node on the live Neon database, please enter the following 6-digit verification code:</p>
-            <div style="text-align: center; margin: 25px 0;">
-              <span style="font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: 6px; background-color: #f1f5f9; padding: 12px 24px; border-radius: 8px; border: 1px solid #cbd5e1; display: inline-block;">${otpCode}</span>
-            </div>
-            <p style="font-size: 11px; color: #64748b; text-align: center;">This code is highly sensitive and will expire in 10 minutes. If you did not request this, please disregard this email.</p>
-            <div style="border-t: 1px solid #f1f5f9; margin-top: 20px; padding-top: 10px; text-align: center;">
-              <span style="font-size: 10px; color: #94a3b8;">TSRV Statewide Student Protection Ecosystem © 2026</span>
-            </div>
-          </div>
-        `
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log(`✉️ [Email OTP] Real SMTP message successfully dispatched to: ${cleanEmail}`);
-      return res.json({ success: true, message: 'A secure verification code has been dispatched to your email.' });
-    } catch (mailError) {
-      console.error('🚨 [Email OTP] SMTP dispatch failed:', mailError.message);
-      console.log(`⚠️ [Email OTP] Fallback active: Generated verification OTP code for [${cleanEmail}] is: ${otpCode}`);
-      return res.json({ 
-        success: true, 
-        message: 'A secure verification code has been generated. (Review Mode: Copy the OTP from the server terminal console!)',
-        isSimulated: true,
-        otp: otpCode
-      });
-    }
+  if (!smtpUser || !smtpPass) {
+    console.error('🚨 [Email OTP] SMTP server credentials are missing in environmental configurations.');
+    return res.status(500).json({ 
+      success: false, 
+      message: 'SMTP email server is currently unconfigured in the environment. Verification codes cannot be dispatched.' 
+    });
   }
 
-  console.log(`⚠️ [Email OTP] SMTP unconfigured. Fallback active: Generated verification OTP code for [${cleanEmail}] is: ${otpCode}`);
-  return res.json({ 
-    success: true, 
-    message: 'A secure verification code has been generated. (Review Mode: Copy the OTP from the server terminal console!)',
-    isSimulated: true,
-    otp: otpCode
-  });
+  try {
+    const nodemailerModule = await import('nodemailer');
+    const nodemailer = nodemailerModule.default || nodemailerModule;
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 4000,
+      socketTimeout: 6000
+    });
+
+    const mailOptions = {
+      from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
+      to: cleanEmail,
+      subject: `[TSRV] Your Student Advocate Verification Code: ${otpCode}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #06b6d4; margin: 0;">TSRV Governance Grid</h2>
+            <span style="font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">Telangana Rakshana Sena Vidyarthi</span>
+          </div>
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">Hello advocate,</p>
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">To verify your email address and authorize your campus advocacy node on the live Neon database, please enter the following 6-digit verification code:</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <span style="font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: 6px; background-color: #f1f5f9; padding: 12px 24px; border-radius: 8px; border: 1px solid #cbd5e1; display: inline-block;">${otpCode}</span>
+          </div>
+          <p style="font-size: 11px; color: #64748b; text-align: center;">This code is highly sensitive and will expire in 10 minutes. If you did not request this, please disregard this email.</p>
+          <div style="border-t: 1px solid #f1f5f9; margin-top: 20px; padding-top: 10px; text-align: center;">
+            <span style="font-size: 10px; color: #94a3b8;">TSRV Statewide Student Protection Ecosystem © 2026</span>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✉️ [Email OTP] Real SMTP message successfully dispatched to: ${cleanEmail}`);
+    return res.json({ success: true, message: 'A secure verification code has been dispatched to your email address.' });
+  } catch (mailError) {
+    console.error('🚨 [Email OTP] SMTP dispatch failed:', mailError.message);
+    return res.status(500).json({ 
+      success: false, 
+      message: `Failed to dispatch verification email: ${mailError.message}. Please verify your SMTP server details.` 
+    });
+  }
 });
 
 /**
