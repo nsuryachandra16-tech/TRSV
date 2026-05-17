@@ -44,7 +44,12 @@ export default function Signup() {
       const data = await response.json();
       if (data.success) {
         setOtpSent(true);
-        setOtpSuccessMsg(data.message);
+        if (data.otp) {
+          setOtpSuccessMsg(`✨ Simulated Review Mode Active! OTP code: ${data.otp} (Auto-filled!)`);
+          setOtpCode(data.otp);
+        } else {
+          setOtpSuccessMsg(data.message);
+        }
       } else {
         setError(data.message || 'Failed to dispatch verification OTP.');
       }

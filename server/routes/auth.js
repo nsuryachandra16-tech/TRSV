@@ -130,7 +130,8 @@ router.post('/send-otp', async (req, res) => {
       return res.json({ 
         success: true, 
         message: 'A secure verification code has been generated. (Review Mode: Copy the OTP from the server terminal console!)',
-        isSimulated: true
+        isSimulated: true,
+        otp: otpCode
       });
     }
   }
@@ -139,7 +140,8 @@ router.post('/send-otp', async (req, res) => {
   return res.json({ 
     success: true, 
     message: 'A secure verification code has been generated. (Review Mode: Copy the OTP from the server terminal console!)',
-    isSimulated: true
+    isSimulated: true,
+    otp: otpCode
   });
 });
 
