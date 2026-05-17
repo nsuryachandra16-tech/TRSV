@@ -1,0 +1,656 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Radio, 
+  ShieldAlert, 
+  Cpu, 
+  Server, 
+  Activity, 
+  ArrowRight, 
+  ShieldCheck, 
+  Plus, 
+  Trash2, 
+  UserCheck, 
+  MapPin, 
+  Building, 
+  Check, 
+  X,
+  AlertTriangle
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import PremiumButton from '../components/PremiumButton';
+import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
+import { TrendChart, CategoryPieChart } from '../components/RechartsWidgets';
+import EmergencyFallback from '../components/EmergencyFallback';
+
+export default function CommandCenter() {
+  const { userProfile } = useAuth();
+  const [activeTab, setActiveTab] = useState('telemetry'); // 'telemetry', 'nodes', 'promotions'
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalLeaders: 0,
+    totalConstituencies: 0,
+    totalColleges: 0,
+    totalComplaints: 0,
+    resolvedComplaints: 0,
+    criticalComplaints: 0,
+    systemLogs: []
+  });
+  // Tab 1: Live telemetry state
+  const [liveFeeds, setLiveFeeds] = useState([]);
+  const [trends, setTrends] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  // Tab 2: Constituencies and Colleges state
+  const [constituencies, setConstituencies] = useState([]);
+  const [colleges, setColleges] = useState([]);
+  const [selectedConId, setSelectedConId] = useState('');
+  
+  // Form variables
+  const [newConName, setNewConName] = useState('');
+  const [newConDistrict, setNewConDistrict] = useState('');
+  const [newCollegeName, setNewCollegeName] = useState('');
+  const [newCollegeCode, setNewCollegeCode] = useState('');
+
+  // Tab 3: Promotion state
+  const [promoUserId, setPromoUserId] = useState('');
+  const [promoRole, setPromoRole] = useState('secretary');
+  const [promoConId, setPromoConId] = useState('');
+  const [promoColId, setPromoColId] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [connectionDropped, setConnectionDropped] = useState(false);
+
+  // Fetch live operational feeds and analytics
+  useEffect(() => {
+    if (activeTab !== 'telemetry') return;
+    
+    const fetchTelemetry = async () => {
+      try {
+        const token = localStorage.getItem('tsrv_session_token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        const [feedRes, trendRes, catRes] = await Promise.all([
+          fetch('/api/transparency/activity'),
+          fetch('/api/analytics/trends', { headers }),
+          fetch('/api/analytics/categories', { headers })
+        ]);
+        
+        const feedData = await feedRes.json();
+        const trendData = await trendRes.json();
+        const catData = await catRes.json();
+        
+        if (feedData.success) {
+          // Map complaints to the format RealtimeActivityFeed expects
+          const mapped = feedData.activity.map(a => ({
+            event_type: a.category + '_Dispute',
+            event_message: `Ticket #${a.id} status updated to ${a.status} in ${a.constituency_name || 'State'}`,
+            severity: a.status === 'Resolved' ? 'success' : a.status === 'Under Investigation' ? 'warning' : 'info',
+            created_at: a.updated_at
+          }));
+          setLiveFeeds(mapped);
+        }
+        if (trendData.success) setTrends(trendData.data);
+        if (catData.success) setCategories(catData.data);
+        setConnectionDropped(false);
+      } catch (err) {
+        console.error('Failed telemetry fetch:', err);
+        setConnectionDropped(true);
+      }
+    };
+
+    fetchTelemetry();
+    
+    // Connect to Enterprise Realtime SSE Stream
+    const eventSource = new EventSource('/api/realtime/stream');
+    eventSource.onopen = () => {
+      setConnectionDropped(false);
+    };
+    eventSource.onerror = () => {
+      setConnectionDropped(true);
+    };
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'EMERGENCY_ACKNOWLEDGED' || data.type === 'NEW_COMPLAINT') {
+          // Instantly refresh the feed if critical governance actions occur
+          fetchTelemetry();
+        }
+      } catch (e) {
+        console.error('SSE Parse Error', e);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeTab]);
+
+  // Load constituencies, colleges, and users
+  const loadData = async () => {
+    try {
+      const conRes = await fetch('/api/constituencies');
+      const conData = await conRes.json();
+      if (conData.success) {
+        setConstituencies(conData.constituencies);
+        if (conData.constituencies.length > 0) {
+          setSelectedConId(conData.constituencies[0].id.toString());
+          setPromoConId(conData.constituencies[0].id.toString());
+        }
+      }
+
+      // Load all colleges
+      const colRes = await fetch('/api/colleges');
+      const colData = await colRes.json();
+      if (colData.success) {
+        setColleges(colData.colleges);
+      }
+
+      const token = localStorage.getItem('tsrv_session_token');
+
+      // Load general stats
+      const statsRes = await fetch('/api/dashboards/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const statsData = await statsRes.json();
+      if (statsData.success) {
+        setStats(statsData.stats);
+      }
+
+      // Load users list for promotion dropdown selection
+      const usersRes = await fetch('/api/dashboards/eligible-users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const usersData = await usersRes.json();
+      if (usersData.success) {
+        setAllUsers(usersData.users);
+        if (usersData.users.length > 0) {
+          setPromoUserId(usersData.users[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load command database metrics:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Filter colleges based on constituency selection
+  const filteredColleges = colleges.filter(col => col.constituency_id.toString() === selectedConId);
+  const promoFilteredColleges = colleges.filter(col => col.constituency_id.toString() === promoConId);
+
+  // Trigger college select mapping update on general selection
+  useEffect(() => {
+    if (promoFilteredColleges.length > 0) {
+      setPromoColId(promoFilteredColleges[0].id.toString());
+    } else {
+      setPromoColId('');
+    }
+  }, [promoConId, colleges]);
+
+  // Add Constituency handler
+  const handleAddConstituency = async (e) => {
+    e.preventDefault();
+    if (!newConName || !newConDistrict) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch('/api/constituencies', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ constituency_name: newConName, district: newConDistrict })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewConName('');
+        setNewConDistrict('');
+        setMessage({ text: 'Constituency added successfully to central state grid.', type: 'success' });
+        await loadData();
+      } else {
+        setMessage({ text: data.message || 'Failed to add constituency.', type: 'error' });
+      }
+    } catch (err) {
+      setMessage({ text: 'Network failure during constituency injection.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add College handler
+  const handleAddCollege = async (e) => {
+    e.preventDefault();
+    if (!newCollegeName || !newCollegeCode || !selectedConId) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch('/api/colleges', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          college_name: newCollegeName, 
+          college_code: newCollegeCode, 
+          constituency_id: parseInt(selectedConId) 
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewCollegeName('');
+        setNewCollegeCode('');
+        setMessage({ text: 'Campus Node registered and secured successfully.', type: 'success' });
+        await loadData();
+      } else {
+        setMessage({ text: data.message || 'Failed to add college Node.', type: 'error' });
+      }
+    } catch (err) {
+      setMessage({ text: 'Network failure during college node registration.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Promotion handler
+  const handlePromote = async (e) => {
+    e.preventDefault();
+    if (!promoUserId || !promoRole) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch('/api/dashboards/promote', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: promoUserId,
+          role: promoRole,
+          constituencyId: promoConId ? parseInt(promoConId) : null,
+          collegeId: promoColId ? parseInt(promoColId) : null
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ text: 'Representative promoted and coordinate keys calibrated.', type: 'success' });
+        await loadData();
+      } else {
+        setMessage({ text: data.message || 'Failed to promote representative.', type: 'error' });
+      }
+    } catch (err) {
+      setMessage({ text: 'Network failure during representative promotion.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-6 text-left select-none animate-fadeIn">
+      
+      {/* 1. Supreme Commander Greeting Header */}
+      <div className="relative overflow-hidden rounded-2xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-850 p-8 shadow-premium-light dark:shadow-premium-dark flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent blur-xl pointer-events-none" />
+        
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 to-cyan-500 flex items-center justify-center text-white animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.3)] shrink-0">
+            <Radio className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-1.5 self-start px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 text-[10px] font-extrabold uppercase tracking-wider border border-cyan-500/20 animate-pulse mb-1.5">
+              SUPREME ADMISSION TELEMETRY ACTIVE
+            </div>
+            
+            <h2 className="text-3xl font-black text-slate-850 dark:text-white leading-tight">
+              Welcome, {userProfile?.full_name || 'Supreme Leader'} | <span className="text-gradient-cyan">Supreme Commander</span>
+            </h2>
+            
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xl leading-relaxed">
+              Synchronizing state protection parameters, regional telemetry keys, and rapid incident response squad logs in real-time.
+            </p>
+          </div>
+        </div>
+
+        <div className="shrink-0 self-start lg:self-center">
+          <div className="flex gap-2">
+            {['telemetry', 'nodes', 'promotions'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setMessage({ text: '', type: '' });
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all capitalize border ${
+                  activeTab === tab
+                    ? 'bg-rose-500 border-rose-500 text-white shadow-glow-cyan'
+                    : 'bg-slate-100/50 dark:bg-slate-900/60 border-slate-200/50 dark:border-slate-800 text-slate-500 hover:text-slate-850 dark:hover:text-white'
+                }`}
+              >
+                {tab === 'nodes' ? 'Academic Grid' : tab}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Dynamic Feedback Alert banner */}
+      {message.text && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 text-xs ${
+          message.type === 'success' 
+            ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+            : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+        }`}>
+          {message.type === 'success' ? <ShieldCheck className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
+          <span>{message.text}</span>
+          <button onClick={() => setMessage({ text: '', type: '' })} className="ml-auto hover:opacity-75">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Tab views dispatching area */}
+      {activeTab === 'telemetry' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full items-stretch animate-scaleUp">
+          <div className="flex flex-col gap-6 lg:col-span-1">
+            <div className="p-6 flex flex-col gap-4 rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-3">
+                <span className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider">Server Infrastructure</span>
+                <Server className="w-4 h-4 text-cyan-500" />
+              </div>
+              <div className="flex flex-col gap-3.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Neon DB Cluster</span>
+                  <span className="text-green-500 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Active (8ms)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Firebase Token Validator</span>
+                  <span className="text-green-500 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Secure (JWT-256)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Active Coordinator Grids</span>
+                  <span className="text-green-500 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Responsive
+                  </span>
+                </div>
+                <div className="h-[1px] bg-slate-200/40 dark:bg-slate-850/80 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Registered Advocates</span>
+                  <strong className="text-slate-750 dark:text-slate-200">{stats.totalUsers}</strong>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Active Leaders</span>
+                  <strong className="text-slate-750 dark:text-slate-200">{stats.totalLeaders}</strong>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Active Grievances</span>
+                  <strong className="text-slate-750 dark:text-slate-200">{stats.totalComplaints - stats.resolvedComplaints}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4 border-l-2 border-rose-500 rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-3">
+                <span className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider">Emergency Dispatches</span>
+                <ShieldAlert className="w-4 h-4 text-rose-500 animate-pulse" />
+              </div>
+              <div className="flex items-baseline gap-2 py-2">
+                <span className="text-3xl font-black text-rose-500">{stats.criticalComplaints}</span>
+                <span className="text-xs font-semibold text-slate-400">Active Campus Alarms</span>
+              </div>
+              <p className="text-[11px] text-slate-550 dark:text-slate-500 leading-relaxed">
+                {stats.criticalComplaints > 0 
+                  ? `${stats.criticalComplaints} critical anti-ragging alarms currently escalated in the state grid. Immediate mobilization required.`
+                  : "No anti-ragging panic signals detected from any of the connected campus coordinate portals."}
+              </p>
+            </div>
+            
+            <EmergencyFallback 
+              isOffline={connectionDropped} 
+              onRetry={async () => {
+                try {
+                  await fetch('/api/health');
+                  setConnectionDropped(false);
+                  loadData();
+                } catch (e) {
+                  console.warn('Re-connect attempt failed');
+                }
+              }} 
+            />
+          </div>
+
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="h-[250px]">
+              <div className="p-4 h-full flex flex-col gap-2 rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+                <span className="font-extrabold text-xs text-slate-700 dark:text-white uppercase tracking-wider pl-2">Statewide Incident Velocity (30 Days)</span>
+                <div className="flex-1 min-h-0">
+                  <TrendChart data={trends} />
+                </div>
+              </div>
+            </div>
+            
+            <div className="h-[300px]">
+              <RealtimeActivityFeed activities={liveFeeds} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'nodes' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start animate-scaleUp">
+          {/* Mapped regional constituencies list & inject form */}
+          <div className="p-6 flex flex-col gap-4 text-left rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <h3 className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-850 pb-3">
+              <MapPin className="w-4 h-4 text-cyan-500" />
+              Telangana Constituency Registry
+            </h3>
+
+            <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 custom-sidebar-scrollbar">
+              {constituencies.map(con => (
+                <div key={con.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-850 text-xs">
+                  <div>
+                    <strong className="text-slate-800 dark:text-white block">{con.constituency_name}</strong>
+                    <span className="text-slate-400">{con.district} District • Node ID #{con.id}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleAddConstituency} className="flex flex-col gap-3.5 border-t border-slate-200/50 dark:border-slate-850 pt-4 mt-1">
+              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block">Inject Constituency Node</span>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  required
+                  placeholder="Kukatpally Constituency"
+                  value={newConName}
+                  onChange={(e) => setNewConName(e.target.value)}
+                  className="p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  type="text"
+                  required
+                  placeholder="Medchal-Malkajgiri"
+                  value={newConDistrict}
+                  onChange={(e) => setNewConDistrict(e.target.value)}
+                  className="p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <PremiumButton type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
+                Inject Constituency Node
+              </PremiumButton>
+            </form>
+          </div>
+
+          {/* Mapped academic campuses list & inject form */}
+          <div className="p-6 flex flex-col gap-4 text-left rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <h3 className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-850 pb-3">
+              <Building className="w-4 h-4 text-cyan-500" />
+              Academic Campus Nodes (Colleges)
+            </h3>
+
+            <div className="flex flex-col gap-3.5 text-xs">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Constituency Territory</label>
+                <select
+                  value={selectedConId}
+                  onChange={(e) => setSelectedConId(e.target.value)}
+                  className="p-2.5 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-850 dark:text-slate-100"
+                >
+                  {constituencies.map(con => (
+                    <option key={con.id} value={con.id}>{con.constituency_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1 custom-sidebar-scrollbar my-1">
+                {filteredColleges.length > 0 ? (
+                  filteredColleges.map(col => (
+                    <div key={col.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-850 text-xs">
+                      <div>
+                        <strong className="text-slate-800 dark:text-white block">{col.college_name}</strong>
+                        <span className="text-slate-400">Campus Code: {col.college_code} • ID #{col.id}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-6 text-center text-slate-400 text-xs italic">
+                    No colleges listed in this constituency territory yet. Add one below!
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <form onSubmit={handleAddCollege} className="flex flex-col gap-3.5 border-t border-slate-200/50 dark:border-slate-850 pt-4 mt-1">
+              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block">Inject Campus Academic Node</span>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  required
+                  placeholder="JNTU Hyderabad"
+                  value={newCollegeName}
+                  onChange={(e) => setNewCollegeName(e.target.value)}
+                  className="p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  type="text"
+                  required
+                  placeholder="JNTUH-99"
+                  value={newCollegeCode}
+                  onChange={(e) => setNewCollegeCode(e.target.value)}
+                  className="p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <PremiumButton type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
+                Inject Campus Academic Node
+              </PremiumButton>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'promotions' && (
+        <div className="w-full max-w-2xl mx-auto animate-scaleUp">
+          <GlassCard hoverEffect={false} className="p-8 flex flex-col gap-6 text-left">
+            <h3 className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-850 pb-4">
+              <UserCheck className="w-5 h-5 text-cyan-500" />
+              Coordinator Promotion Grid
+            </h3>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-100/50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/40 dark:border-slate-850">
+              Select any registered student representative profile from the network and calibrate their state administrative coordinates, authorizing specific local campus or constituency grievance dispatch permissions.
+            </p>
+
+            <form onSubmit={handlePromote} className="flex flex-col gap-5">
+              
+              {/* Select student to promote */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Registered Coordinator Profile</label>
+                <select
+                  value={promoUserId}
+                  onChange={(e) => setPromoUserId(e.target.value)}
+                  className="w-full p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-850 dark:text-slate-100"
+                >
+                  {allUsers.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.full_name} ({user.email}) - Current Rank: [{user.role}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Roles Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Leader Command Rank</label>
+                  <select
+                    value={promoRole}
+                    onChange={(e) => setPromoRole(e.target.value)}
+                    className="w-full p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-850 dark:text-slate-100"
+                  >
+                    <option value="secretary">Campus Secretary</option>
+                    <option value="general_secretary">General Secretary</option>
+                    <option value="vice_president">Vice President</option>
+                    <option value="president">State President</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Map Constituency Territory</label>
+                  <select
+                    value={promoConId}
+                    onChange={(e) => setPromoConId(e.target.value)}
+                    className="w-full p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-850 dark:text-slate-100"
+                  >
+                    {constituencies.map(con => (
+                      <option key={con.id} value={con.id}>{con.constituency_name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Map specific college node (only for Campus Secretary rank) */}
+              {promoRole === 'secretary' && (
+                <div className="flex flex-col gap-1.5 animate-scaleUp">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Map Campus Academic Node</label>
+                  <select
+                    value={promoColId}
+                    onChange={(e) => setPromoColId(e.target.value)}
+                    disabled={promoFilteredColleges.length === 0}
+                    className="w-full p-3 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-850 dark:text-slate-100 disabled:opacity-50"
+                  >
+                    {promoFilteredColleges.length > 0 ? (
+                      promoFilteredColleges.map(col => (
+                        <option key={col.id} value={col.id}>{col.college_name}</option>
+                      ))
+                    ) : (
+                      <option value="">No Colleges listed in selected territory</option>
+                    )}
+                  </select>
+                </div>
+              )}
+
+              <PremiumButton type="submit" variant="primary" size="md" className="w-full mt-2" disabled={loading}>
+                {loading ? 'Recalibrating Security Perms...' : 'Promote Representative & Assign Coordinates'}
+              </PremiumButton>
+
+            </form>
+          </GlassCard>
+        </div>
+      )}
+
+    </div>
+  );
+}
