@@ -99,9 +99,9 @@ router.post('/send-otp', async (req, res) => {
         user: smtpUser,
         pass: smtpPass
       },
-      connectionTimeout: 5000,
-      greetingTimeout: 4000,
-      socketTimeout: 6000,
+      connectionTimeout: 10000, // 10 seconds timeout
+      greetingTimeout: 10000,   // 10 seconds greeting timeout
+      socketTimeout: 15000,     // 15 seconds socket timeout
       tls: {
         rejectUnauthorized: false
       }
