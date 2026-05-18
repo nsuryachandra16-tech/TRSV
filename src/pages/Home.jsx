@@ -330,6 +330,74 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 4.5 LEAD DEVELOPER & SYSTEM IDEOLOGY */}
+      <section className="w-full flex flex-col gap-12 text-left">
+        <div className="max-w-3xl flex flex-col gap-4">
+          <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase">
+            Ecosystem Architecture & Vision
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white tracking-normal">
+            Lead Developer & System Ideology
+          </h2>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+            Unveiling the core visionary mastermind and engineering philosophy driving Telangana's ultimate digital safety shield.
+          </p>
+        </div>
+
+        <AnimatedSection direction="up" className="w-full max-w-5xl mx-auto mt-6">
+          <GlassCard className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 rounded-3xl relative overflow-hidden shadow-2xl">
+            {/* Background absolute glowing core */}
+            <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 blur-[100px] pointer-events-none" />
+            
+            {/* Visual Portrait Slot (With high-tech placeholder details) */}
+            <div className="w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden relative border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] shrink-0 bg-slate-900/60 flex items-center justify-center group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              {/* Tech avatar details */}
+              <div className="flex flex-col items-center justify-center text-center p-4 z-10 select-none">
+                <Shield className="w-12 h-12 text-cyan-400 mb-3 animate-pulse" />
+                <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">SYSTEM ARCHITECT</span>
+                <span className="text-[8px] font-extrabold text-cyan-400 mt-1 uppercase tracking-widest">PORTRAIT SLOT</span>
+              </div>
+              
+              {/* Outer decorative neon lines */}
+              <div className="absolute inset-1.5 border border-dashed border-cyan-500/20 rounded-xl" />
+            </div>
+
+            {/* Developer text description */}
+            <div className="flex-grow text-left flex flex-col gap-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 self-start text-[10px] font-black text-cyan-600 dark:text-cyan-400 tracking-wider uppercase">
+                ⚙️ LEAD SYSTEM ENGINEER & CREATOR
+              </div>
+              
+              <h3 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white leading-none">
+                Suryachandra <span className="text-gradient-cyan">Developer</span>
+              </h3>
+              
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase leading-none">
+                Chief Technology Architect of TSRV State OS
+              </p>
+
+              <div className="flex flex-col gap-4 mt-2">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                  "The ideology behind the TSRV State OS is built upon absolute protection, cryptographic transparency, and immediate response dispatch. In modern academic spaces, student security should never be compromised or delayed by bureaucratic red tape."
+                </p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  "By establishing secure local coordinate nodes, strict PostgreSQL database authorization, and unalterable public resolution registry logbooks, we have constructed a digital fortress. Every campus secretary, every constituency general secretary, and the central state authority are synchronized inside a single, unified safety telemetry terminal."
+                </p>
+              </div>
+
+              <div className="flex gap-4 items-center mt-3 pt-4 border-t border-slate-200/50 dark:border-slate-850">
+                <div className="flex flex-col text-left">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Signature Grid Address</span>
+                  <span className="text-[10px] font-mono text-cyan-500 font-bold tracking-wider mt-0.5">DEV_NODE_ID: #SURYACHANDRA_TRSV_2026</span>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimatedSection>
+      </section>
+
       {/* 5. Direct CTA Action Frame */}
       <section className="w-full max-w-4xl mx-auto text-center py-4">
         <GlassCard className="p-8 sm:p-12 flex flex-col gap-6 items-center bg-cyan-500/5 dark:bg-slate-950/20 border border-cyan-500/20">

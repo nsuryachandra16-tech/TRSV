@@ -7,7 +7,7 @@ import PremiumButton from '../components/PremiumButton';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, resetPassword } = useAuth();
+  const { login, resetPassword, confirmResetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +19,9 @@ export default function Login() {
   const [resetSuccess, setResetSuccess] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetStep, setResetStep] = useState(1);
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,12 +53,27 @@ export default function Login() {
     setResetSuccess('');
     setResetLoading(true);
     try {
-      await resetPassword(resetEmail);
-      setResetSuccess('Decryption reset link dispatched successfully! Please check your registered email inbox.');
-      setResetLoading(false);
+      if (resetStep === 1) {
+        await resetPassword(resetEmail);
+        setResetSuccess('Decryption passkey reset OTP dispatched successfully! Please check your registered student inbox.');
+        setResetStep(2);
+        setResetLoading(false);
+      } else {
+        await confirmResetPassword(resetEmail, resetOtp, resetNewPassword);
+        setResetSuccess('Your access passkey has been successfully reset! Directing to terminal login...');
+        setResetLoading(false);
+        setTimeout(() => {
+          setShowResetModal(false);
+          setResetSuccess('');
+          setResetError('');
+          setResetStep(1);
+          setResetOtp('');
+          setResetNewPassword('');
+        }, 2500);
+      }
     } catch (err) {
       setResetLoading(false);
-      setResetError(err.message || 'Failed to dispatch password recovery link.');
+      setResetError(err.message || 'Failed to execute password recovery protocol.');
     }
   };
 
@@ -189,20 +207,68 @@ export default function Login() {
               )}
 
               <form onSubmit={handleResetPassword} className="flex flex-col gap-4 text-left">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registered Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="name@college.edu"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border bg-white dark:bg-slate-950/60 text-sm focus:outline-none focus:border-cyan-400 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
-                    />
+                {resetStep === 1 ? (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registered Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="name@college.edu"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border bg-white dark:bg-slate-950/60 text-sm focus:outline-none focus:border-cyan-400 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registered Email</label>
+                      <div className="relative opacity-60">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="email"
+                          disabled
+                          value={resetEmail}
+                          className="w-full pl-11 pr-4 py-3 rounded-xl border bg-slate-100 dark:bg-slate-900 text-sm border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1.5 animate-[fadeIn_0.2s_ease-out]">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">6-Digit Recovery OTP</label>
+                      <div className="relative">
+                        <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          maxLength={6}
+                          placeholder="123456"
+                          value={resetOtp}
+                          onChange={(e) => setResetOtp(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 rounded-xl border bg-white dark:bg-slate-950/60 text-sm focus:outline-none focus:border-cyan-400 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 tracking-[0.2em] font-mono text-center"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 animate-[fadeIn_0.2s_ease-out]">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">New Access Passkey</label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••••••"
+                          value={resetNewPassword}
+                          onChange={(e) => setResetNewPassword(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 rounded-xl border bg-white dark:bg-slate-950/60 text-sm focus:outline-none focus:border-cyan-400 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex gap-3 mt-4">
                   <button
@@ -211,6 +277,9 @@ export default function Login() {
                       setShowResetModal(false);
                       setResetSuccess('');
                       setResetError('');
+                      setResetStep(1);
+                      setResetOtp('');
+                      setResetNewPassword('');
                     }}
                     className="flex-1 px-4 py-3 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-600 hover:text-slate-900 dark:text-slate-350 dark:hover:text-slate-100 text-xs font-bold transition-all duration-200"
                   >
@@ -224,7 +293,7 @@ export default function Login() {
                     className="flex-1"
                     disabled={resetLoading}
                   >
-                    {resetLoading ? 'Dispatched...' : 'Send Link'}
+                    {resetLoading ? 'Processing...' : resetStep === 1 ? 'Send Code' : 'Reset Passkey'}
                   </PremiumButton>
                 </div>
               </form>

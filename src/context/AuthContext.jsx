@@ -234,7 +234,37 @@ export const AuthProvider = ({ children }) => {
    * Password reset trigger (Deprecated in local JWT migration)
    */
   const resetPassword = async (email) => {
-    throw new Error('Statewide security protocol: Contact your constituency administrator or Supreme Command to request a password reset.');
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to trigger password recovery.');
+      }
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const confirmResetPassword = async (email, code, newPassword) => {
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, newPassword })
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to reset password.');
+      }
+      return data;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const value = {
@@ -247,6 +277,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     resetPassword,
+    confirmResetPassword,
     refreshProfile: () => fetchDbProfile(token)
   };
 
