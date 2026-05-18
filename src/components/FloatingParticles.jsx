@@ -12,13 +12,14 @@ export default function FloatingParticles() {
     const ctx = canvas.getContext('2d');
     let animationFrameId;
     let particles = [];
-    const maxParticles = 600; // Perfect density for smooth 60fps performance
+    const maxParticles = 550; // Perfect density for high-framerate fluid animations
 
     const mouse = {
       x: null,
       y: null,
-      radius: 200, // Area of magnetic cursor attraction
-      active: false
+      radius: 200, // Magnetic attraction bounds
+      active: false,
+      trail: [] // History of cursor paths
     };
 
     const handleResize = () => {
@@ -30,6 +31,12 @@ export default function FloatingParticles() {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
       mouse.active = true;
+      
+      // Append coordinates to ribbon history with full initial lifetime
+      mouse.trail.push({ x: e.clientX, y: e.clientY, alpha: 1.0 });
+      if (mouse.trail.length > 25) {
+        mouse.trail.shift();
+      }
     };
 
     const handleMouseLeave = () => {
@@ -53,7 +60,7 @@ export default function FloatingParticles() {
         this.x = init ? Math.random() * canvas.width : (Math.random() > 0.5 ? 0 : canvas.width);
         this.y = init ? Math.random() * canvas.height : Math.random() * canvas.height;
         
-        // Spawn randomly at boundary edges if resetting
+        // Spawn randomly at boundaries if resetting
         if (!init) {
           if (Math.random() > 0.5) {
             this.x = Math.random() * canvas.width;
@@ -63,13 +70,13 @@ export default function FloatingParticles() {
 
         this.vx = 0;
         this.vy = 0;
-        this.speed = Math.random() * 1.6 + 0.6;
-        this.size = Math.random() * 1.3 + 0.6; // Very tiny premium particles (like fine dust)
+        this.speed = Math.random() * 1.5 + 0.5;
+        this.size = Math.random() * 1.2 + 0.6; // Ultra-tiny, elegant stardust particles
         this.life = Math.random() * 200 + 80;
         this.maxLife = this.life;
         this.alpha = 0;
         
-        // Map color hue to the coordinates angle from center (creates gorgeous spectrum waves)
+        // Map hue to angular coordinate around the screen center (creates gorgeous spectrum flow waves)
         const angle = Math.atan2(this.y - canvas.height / 2, this.x - canvas.width / 2);
         this.hue = Math.floor(((angle + Math.PI) / (Math.PI * 2)) * 180) + 180; // Shift from cyan to violet/orange
       }
@@ -81,7 +88,7 @@ export default function FloatingParticles() {
           return;
         }
 
-        // Fade in at start, fade out at end
+        // Smooth fade-in and fade-out life cycles
         if (this.life > this.maxLife - 30) {
           this.alpha += 0.035;
         } else if (this.life < 30) {
@@ -89,13 +96,13 @@ export default function FloatingParticles() {
         }
         this.alpha = Math.max(0, Math.min(0.8, this.alpha));
 
-        // 1. Base Flow Field Wave Sample (sine/cosine vector fields)
-        const flowAngle = Math.sin(this.x * 0.0018) * Math.cos(this.y * 0.0018) * Math.PI * 2;
+        // 1. Vector Flow Field sample (continuous sine/cosine coordinates wave fields)
+        const flowAngle = Math.sin(this.x * 0.0016) * Math.cos(this.y * 0.0016) * Math.PI * 2;
         
         let targetVx = Math.cos(flowAngle) * this.speed;
         let targetVy = Math.sin(flowAngle) * this.speed;
 
-        // 2. Cursor Swirling Attraction (Magnetic Vector Attraction)
+        // 2. Gravitational vortex attraction if mouse is near
         if (mouse.active && mouse.x !== null && mouse.y !== null) {
           const dx = mouse.x - this.x;
           const dy = mouse.y - this.y;
@@ -104,21 +111,20 @@ export default function FloatingParticles() {
           if (dist < mouse.radius) {
             const force = (mouse.radius - dist) / mouse.radius;
             
-            // Attract/Repel gravitational pull
+            // Core attraction force pulling particles toward the cursor
             const attractX = (dx / dist) * this.speed * force * 1.2;
             const attractY = (dy / dist) * this.speed * force * 1.2;
 
-            // Orbital swirl force (draws beautiful swirling paths/comet trails around the mouse)
-            const orbitX = (-dy / dist) * this.speed * force * 2.8;
-            const orbitY = (dx / dist) * this.speed * force * 2.8;
+            // Orbital swirling force that wraps particles into fluid swirls around the cursor
+            const orbitX = (-dy / dist) * this.speed * force * 2.6;
+            const orbitY = (dx / dist) * this.speed * force * 2.6;
 
-            // Interpolate base flow with cursor flow
             targetVx = targetVx * (1 - force) + (attractX + orbitX) * force;
             targetVy = targetVy * (1 - force) + (attractY + orbitY) * force;
           }
         }
 
-        // Apply velocity with smooth inertia/easing
+        // Apply velocities with smooth momentum/inertia
         this.vx = this.vx * 0.93 + targetVx * 0.07;
         this.vy = this.vy * 0.93 + targetVy * 0.07;
 
@@ -135,11 +141,11 @@ export default function FloatingParticles() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         
-        // curated high-end spectral HSL colors matching background light/dark boundaries
+        // Curated high-end spectral HSL colors matching background light/dark modes
         const lightness = isDark ? 65 : 45;
         const saturation = isDark ? 85 : 75;
         
-        ctx.fillStyle = `hsla(${this.hue}, ${saturation}%, ${lightness}%, ${this.alpha * 0.6})`;
+        ctx.fillStyle = `hsla(${this.hue}, ${saturation}%, ${lightness}%, ${this.alpha * 0.55})`;
         ctx.fill();
       }
     }
@@ -152,14 +158,67 @@ export default function FloatingParticles() {
     };
 
     const animate = () => {
-      // Streaking comet trail lines: draw a semi-transparent layer instead of clearing
-      ctx.fillStyle = isDark ? 'rgba(3, 7, 18, 0.085)' : 'rgba(248, 250, 252, 0.085)';
+      // Paint translucent trailing screen background for particle trails (gorgeous light streaks)
+      ctx.fillStyle = isDark ? 'rgba(3, 7, 18, 0.09)' : 'rgba(248, 250, 252, 0.09)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Render standard particle paths
       particles.forEach((particle) => {
         particle.update();
         particle.draw();
       });
+
+      // --- ADVANCED CURSOR INTERACTIVE EFFECTS ---
+
+      if (mouse.active && mouse.x !== null && mouse.y !== null) {
+        // 1. Magnetic Laser Constellation connections
+        // Draws direct fine connecting laser lines from cursor directly to surrounding flow particles
+        particles.forEach((p) => {
+          const dx = mouse.x - p.x;
+          const dy = mouse.y - p.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.moveTo(mouse.x, mouse.y);
+            ctx.lineTo(p.x, p.y);
+            
+            const alpha = ((140 - dist) / 140) * (isDark ? 0.16 : 0.12);
+            ctx.strokeStyle = isDark ? `rgba(34, 211, 238, ${alpha})` : `rgba(14, 165, 233, ${alpha})`;
+            ctx.lineWidth = 0.6;
+            ctx.stroke();
+          }
+        });
+      }
+
+      // 2. Shimmering Neon Ribbon Trail
+      // Draws a smooth multi-colored trailing ribbon trailing behind the cursor coordinates
+      if (mouse.trail.length > 1) {
+        // Decay old trail point opacities
+        for (let i = 0; i < mouse.trail.length; i++) {
+          mouse.trail[i].alpha -= 0.035;
+        }
+        // Filter out expired coordinates
+        mouse.trail = mouse.trail.filter(pt => pt.alpha > 0);
+
+        // Render ribbon segment by segment with thickness and spectrum shifting near cursor
+        for (let i = 0; i < mouse.trail.length - 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(mouse.trail[i].x, mouse.trail[i].y);
+          ctx.lineTo(mouse.trail[i + 1].x, mouse.trail[i + 1].y);
+          
+          const segmentAlpha = mouse.trail[i].alpha * (isDark ? 0.45 : 0.3);
+          
+          // Color spectra shifts from purple/magenta to orange right next to the cursor
+          const hue = 180 + (1.0 - mouse.trail[i].alpha) * 160; 
+          ctx.strokeStyle = `hsla(${hue}, 85%, ${isDark ? 65 : 45}%, ${segmentAlpha})`;
+          
+          // Ribbons gets thicker as it gets closer to the active cursor
+          ctx.lineWidth = 3.5 * mouse.trail[i].alpha; 
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+      }
 
       animationFrameId = requestAnimationFrame(animate);
     };
