@@ -177,22 +177,21 @@ app.listen(PORT, async () => {
       console.log('👑 [Database] Master Dev credentials synchronized and secured successfully.');
 
       // Send onboarding invite mail to Master Developer to confirm SMTP integration!
-      const smtpUser = process.env.SMTP_USER;
-      const smtpPass = process.env.SMTP_PASS;
-      if (smtpUser && smtpPass) {
-        try {
-          const nodemailerModule = await import('nodemailer');
-          const nodemailer = nodemailerModule.default || nodemailerModule;
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_PORT === '465',
-            auth: { user: smtpUser, pass: smtpPass },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
-            tls: { rejectUnauthorized: false }
-          });
+      const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
+      const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
+      try {
+        const nodemailerModule = await import('nodemailer');
+        const nodemailer = nodemailerModule.default || nodemailerModule;
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
+          auth: { user: smtpUser, pass: smtpPass },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 15000,
+          tls: { rejectUnauthorized: false }
+        });
 
           await transporter.sendMail({
             from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
@@ -237,8 +236,8 @@ app.listen(PORT, async () => {
         } catch (mailErr) {
           console.error('🚨 [Database Seed] Failed to dispatch developer welcome email:', mailErr.message);
         }
-      } else {
-        console.warn('⚠️ [Database Seed] SMTP credentials unconfigured. Skipping developer welcome email dispatch.');
+      } catch (outerErr) {
+        console.error('🚨 [Database Seed] Outer transporter error:', outerErr.message);
       }
     } catch (devErr) {
       console.error('🚨 [Database] Failed to seed master dev credentials:', devErr.message);

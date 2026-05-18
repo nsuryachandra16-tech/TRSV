@@ -77,22 +77,14 @@ router.post('/send-otp', async (req, res) => {
 
   console.log(`🔑 [Email OTP] Generated code ${otpCode} for student node: ${cleanEmail}`);
 
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-
-  if (!smtpUser || !smtpPass) {
-    console.error('🚨 [Email OTP] SMTP server credentials are missing in environmental configurations.');
-    return res.status(500).json({ 
-      success: false, 
-      message: 'SMTP email server is currently unconfigured in the environment. Verification codes cannot be dispatched.' 
-    });
-  }
+  const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
+  const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
 
   try {
     const nodemailerModule = await import('nodemailer');
     const nodemailer = nodemailerModule.default || nodemailerModule;
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_PORT === '465',
       auth: {
@@ -551,21 +543,13 @@ router.post('/forgot-password', async (req, res) => {
 
     console.log(`🔑 [Password Reset OTP] Generated code ${otpCode} and stored in DB for student: ${cleanEmail}`);
 
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-
-    if (!smtpUser || !smtpPass) {
-      console.error('🚨 [Password Reset OTP] SMTP server credentials missing.');
-      return res.status(500).json({
-        success: false,
-        message: 'SMTP email server is currently unconfigured in the environment. Verification codes cannot be dispatched.'
-      });
-    }
+    const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
+    const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
 
     const nodemailerModule = await import('nodemailer');
     const nodemailer = nodemailerModule.default || nodemailerModule;
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_PORT === '465',
       auth: {

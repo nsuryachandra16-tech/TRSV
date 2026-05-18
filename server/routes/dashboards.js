@@ -306,12 +306,12 @@ const handleAssignLeaderLogic = async (req, res) => {
         const nodemailerModule = await import('nodemailer');
         const nodemailer = nodemailerModule.default || nodemailerModule;
         
-        const smtpUser = process.env.SMTP_USER;
-        const smtpPass = process.env.SMTP_PASS;
+        const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
+        const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
 
-        if (smtpUser && smtpPass) {
+        try {
           const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
             port: parseInt(process.env.SMTP_PORT || '587'),
             secure: process.env.SMTP_PORT === '465',
             auth: { user: smtpUser, pass: smtpPass },
@@ -371,11 +371,11 @@ const handleAssignLeaderLogic = async (req, res) => {
             html: emailHtml
           });
           console.log(`✉️ [Admin Invite] Access invitation email successfully dispatched to: ${finalEmail}`);
-        } else {
-          console.warn('⚠️ [Admin Invite] SMTP user/pass is unconfigured. Skipping email dispatch.');
+        } catch (mailErr) {
+          console.error('🚨 [Admin Invite] Failed to dispatch email:', mailErr.message);
         }
-      } catch (mailErr) {
-        console.error('🚨 [Admin Invite] Failed to dispatch email:', mailErr.message);
+      } catch (outerErr) {
+        console.error('🚨 [Admin Invite] Outer fail:', outerErr.message);
       }
     }
 
