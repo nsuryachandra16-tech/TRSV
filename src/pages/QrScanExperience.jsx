@@ -37,6 +37,7 @@ export default function QrScanExperience() {
     setScanResult(null);
     setCameraActive(true);
     
+    // Allow React to paint the #reader DOM node block layout first
     setTimeout(async () => {
       try {
         const html5Qrcode = new Html5Qrcode("reader");
@@ -45,14 +46,15 @@ export default function QrScanExperience() {
         await html5Qrcode.start(
           { facingMode: "environment" },
           {
-            fps: 10,
+            fps: 15,
             qrbox: (width, height) => {
-              const size = Math.min(width, height) * 0.7;
+              const size = Math.min(width, height) * 0.8;
               return { width: size, height: size };
-            }
+            },
+            aspectRatio: 1.0
           },
           (decodedText) => {
-            console.log("QR Code read successfully:", decodedText);
+            console.log("QR Code read successfully from camera:", decodedText);
             
             // Extract the verify token if it's a URL
             let tokenOrId = decodedText;
@@ -72,7 +74,7 @@ export default function QrScanExperience() {
         setScanError("Unable to access camera. Please verify camera permissions in your browser.");
         setCameraActive(false);
       }
-    }, 100);
+    }, 150);
   };
 
   // Cleanup on unmount
@@ -107,21 +109,39 @@ export default function QrScanExperience() {
       } finally {
         setScanning(false);
       }
-    }, 1800);
+    }, 1200);
   };
 
+  // Perform REAL QR code decoding from uploaded pass image files
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setUploadedFile(file.name);
-      // Automatically trigger mock decryption logic based on file
-      // If it looks like surya's card, verify surya, else trigger mock check
-      if (file.name.toLowerCase().includes('surya')) {
-        executeVerifyQuery('TSRV-HQ-0001');
-      } else {
-        executeVerifyQuery('supreme_secure_qr_token_surya_2026');
-      }
-    }
+    if (!file) return;
+
+    setUploadedFile(file.name);
+    setScanning(true);
+    setScanError('');
+    setScanResult(null);
+
+    // Create temporary off-screen Html5Qrcode using our persistent DOM element
+    const html5Qrcode = new Html5Qrcode("reader");
+    
+    html5Qrcode.scanFile(file, false)
+      .then(decodedText => {
+        console.log("QR Code read successfully from file:", decodedText);
+        
+        // Extract the verify token if it's a URL
+        let tokenOrId = decodedText;
+        if (decodedText.includes('/verify/')) {
+          tokenOrId = decodedText.split('/verify/')[1];
+        }
+        
+        executeVerifyQuery(tokenOrId);
+      })
+      .catch(err => {
+        console.error("QR Code file scan failed:", err);
+        setScanError("Failed to decode QR: Make sure the uploaded card back face is clearly visible with its QR code.");
+        setScanning(false);
+      });
   };
 
   const closeResultModal = () => {
@@ -162,11 +182,16 @@ export default function QrScanExperience() {
             {/* Viewfinder Bounding Box */}
             <div className="relative w-full max-w-[340px] aspect-square rounded-2xl border-2 border-slate-800 bg-slate-950 flex items-center justify-center overflow-hidden shadow-2xl mt-4">
               
-              {cameraActive ? (
-                <div id="reader" className="w-full h-full object-cover z-10" />
-              ) : (
+              {/* Persistent Scanner viewport DOM element (Needed for both camera start and file upload readers) */}
+              <div 
+                id="reader" 
+                className="absolute inset-0 w-full h-full object-cover z-10 bg-slate-950" 
+                style={{ display: cameraActive ? 'block' : 'none' }}
+              />
+
+              {!cameraActive && (
                 /* Central QR Reticle visual */
-                <div className="w-48 h-48 opacity-30 border border-slate-700 rounded-xl flex items-center justify-center p-6 relative">
+                <div className="w-48 h-48 opacity-30 border border-slate-700 rounded-xl flex items-center justify-center p-6 relative z-10">
                   <Scan className={`w-28 h-28 text-slate-400 ${scanning ? 'animate-pulse text-cyan-400 opacity-60' : ''}`} />
                   {scanning && (
                     <span className="absolute bottom-2 text-[9px] text-cyan-400 uppercase tracking-widest font-black animate-pulse">

@@ -14,6 +14,43 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Automatic Production Cache Buster & SW Purger -->
+    <script>
+      (function() {
+        const CURRENT_BUILD_VERSION = "TSRV_BUILD_2026_05_18_V5";
+        const storedVersion = localStorage.getItem("tsrv_build_version");
+        if (storedVersion !== CURRENT_BUILD_VERSION) {
+          console.warn("🧹 [Cache Buster] New system version detected! Cleared stale client caches & registered service workers.");
+          
+          // Clear caches
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (let name of names) {
+                caches.delete(name);
+              }
+            });
+          }
+          
+          // Unregister old Service Workers
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+          
+          // Save new version tag
+          localStorage.setItem("tsrv_build_version", CURRENT_BUILD_VERSION);
+          
+          // Hard reload the browser node to fetch fresh assets
+          setTimeout(function() {
+            window.location.reload(true);
+          }, 250);
+        }
+      })();
+    </script>
   </head>
   <body class="transition-colors duration-500 ease-in-out">
     <div id="root"></div>
