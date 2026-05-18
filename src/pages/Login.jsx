@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Key, Mail, Lock, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -173,8 +174,8 @@ export default function Login() {
       </div>
 
       {/* Password Reset Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]">
+      {showResetModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]">
           <div className="w-full max-w-md animate-[scaleIn_0.2s_ease-out]">
             <div className="bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 p-8 relative rounded-2xl shadow-2xl overflow-hidden">
               {/* Top light bar */}
@@ -299,7 +300,8 @@ export default function Login() {
               </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
