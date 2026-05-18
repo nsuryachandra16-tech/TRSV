@@ -302,16 +302,15 @@ const handleAssignLeaderLogic = async (req, res) => {
     // Send direct SMTP invitation / update email if the user is set to an admin/leader role
     const isNewAdmin = ['secretary', 'general_secretary', 'vice_president', 'president', 'supreme_admin'].includes(role);
     if (isNewAdmin && finalEmail) {
-      try {
-        const nodemailerModule = await import('nodemailer');
-        const nodemailer = nodemailerModule.default || nodemailerModule;
-        
-        const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
-        const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
+      const smtpUser = process.env.SMTP_USER;
+      const smtpPass = process.env.SMTP_PASS;
 
+      if (smtpUser && smtpPass) {
         try {
+          const nodemailerModule = await import('nodemailer');
+          const nodemailer = nodemailerModule.default || nodemailerModule;
           const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
             port: parseInt(process.env.SMTP_PORT || '587'),
             secure: process.env.SMTP_PORT === '465',
             auth: { user: smtpUser, pass: smtpPass },
@@ -374,8 +373,8 @@ const handleAssignLeaderLogic = async (req, res) => {
         } catch (mailErr) {
           console.error('🚨 [Admin Invite] Failed to dispatch email:', mailErr.message);
         }
-      } catch (outerErr) {
-        console.error('🚨 [Admin Invite] Outer fail:', outerErr.message);
+      } else {
+        console.warn('⚠️ [Admin Invite] SMTP user/pass is unconfigured. Skipping email dispatch.');
       }
     }
 

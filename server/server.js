@@ -177,64 +177,71 @@ app.listen(PORT, async () => {
       console.log('👑 [Database] Master Dev credentials synchronized and secured successfully.');
 
       // Send onboarding invite mail to Master Developer to confirm SMTP integration!
-      const smtpUser = process.env.SMTP_USER || 'ab9496001@smtp-brevo.com';
-      const smtpPass = process.env.SMTP_PASS || 'd2KgwRvcZQ6BSDnx';
-      
-      const nodemailerModule = await import('nodemailer');
-      const nodemailer = nodemailerModule.default || nodemailerModule;
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_PORT === '465',
-        auth: { user: smtpUser, pass: smtpPass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-        tls: { rejectUnauthorized: false }
-      });
+      const smtpUser = process.env.SMTP_USER;
+      const smtpPass = process.env.SMTP_PASS;
+      if (smtpUser && smtpPass) {
+        try {
+          const nodemailerModule = await import('nodemailer');
+          const nodemailer = nodemailerModule.default || nodemailerModule;
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_PORT === '465',
+            auth: { user: smtpUser, pass: smtpPass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
+            tls: { rejectUnauthorized: false }
+          });
 
-      await transporter.sendMail({
-        from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
-        to: devEmail,
-        subject: `[TSRV SECURITY GRID] Master Developer Account Calibrated`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <div style="text-align: center; margin-bottom: 25px;">
-              <h2 style="color: #06b6d4; margin: 0; font-size: 22px; font-weight: 800;">TSRV Security Grid</h2>
-              <span style="font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1.5px; text-transform: uppercase;">Telangana Rakshana Sena Vidyarthi</span>
-            </div>
-            <p style="font-size: 15px; color: #1e293b; line-height: 1.6; font-weight: bold;">Hey Suryachandra,</p>
-            <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-              Your Master Developer access credentials have been seeded, synchronized, and calibrated on the production Neon database.
-            </p>
-            
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: left;">
-              <div style="margin-bottom: 12px;">
-                <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Assigned Role</span>
-                <strong style="font-size: 15px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">MASTER DEVELOPER</strong>
+          await transporter.sendMail({
+            from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
+            to: devEmail,
+            subject: `[TSRV SECURITY GRID] Master Developer Account Calibrated`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 25px;">
+                  <h2 style="color: #06b6d4; margin: 0; font-size: 22px; font-weight: 800;">TSRV Security Grid</h2>
+                  <span style="font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1.5px; text-transform: uppercase;">Telangana Rakshana Sena Vidyarthi</span>
+                </div>
+                <p style="font-size: 15px; color: #1e293b; line-height: 1.6; font-weight: bold;">Hey Suryachandra,</p>
+                <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+                  Your Master Developer access credentials have been seeded, synchronized, and calibrated on the production Neon database.
+                </p>
+                
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: left;">
+                  <div style="margin-bottom: 12px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Assigned Role</span>
+                    <strong style="font-size: 15px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">MASTER DEVELOPER</strong>
+                  </div>
+                  <div style="margin-bottom: 12px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Authorized Email Portal</span>
+                    <strong style="font-size: 14px; color: #0f172a;">${devEmail}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Global Access Coordinates</span>
+                    <strong style="font-size: 14px; color: #0f172a;">All constituencies & tickets (Master Clearance)</strong>
+                  </div>
+                </div>
+                
+                <p style="font-size: 13px; color: #ef4444; line-height: 1.6; font-weight: 650; margin-top: 20px; border-left: 3px solid #ef4444; padding-left: 10px;">
+                  DEVELOPER SECURITY REQUIREMENT: You are now an active guardian of the student safety ecosystem. Always protect student complaints and coordinates with absolute confidentiality and state honors.
+                </p>
+                <div style="border-top: 1px solid #f1f5f9; margin-top: 30px; padding-top: 15px; text-align: center;">
+                  <span style="font-size: 10px; color: #94a3b8;">TSRV Statewide Student Protection Ecosystem © 2026</span>
+                </div>
               </div>
-              <div style="margin-bottom: 12px;">
-                <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Authorized Email Portal</span>
-                <strong style="font-size: 14px; color: #0f172a;">${devEmail}</strong>
-              </div>
-              <div>
-                <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Global Access Coordinates</span>
-                <strong style="font-size: 14px; color: #0f172a;">All constituencies & tickets (Master Clearance)</strong>
-              </div>
-            </div>
-            
-            <p style="font-size: 13px; color: #ef4444; line-height: 1.6; font-weight: 650; margin-top: 20px; border-left: 3px solid #ef4444; padding-left: 10px;">
-              DEVELOPER SECURITY REQUIREMENT: You are now an active guardian of the student safety ecosystem. Always protect student complaints and coordinates with absolute confidentiality and state honors.
-            </p>
-            <div style="border-top: 1px solid #f1f5f9; margin-top: 30px; padding-top: 15px; text-align: center;">
-              <span style="font-size: 10px; color: #94a3b8;">TSRV Statewide Student Protection Ecosystem © 2026</span>
-            </div>
-          </div>
-        `
-      });
-      console.log(`✉️ [Database Seed] Developer welcome email successfully dispatched to: ${devEmail}`);
+            `
+          });
+          console.log(`✉️ [Database Seed] Developer welcome email successfully dispatched to: ${devEmail}`);
+        } catch (mailErr) {
+          console.error('🚨 [Database Seed] Failed to dispatch developer welcome email:', mailErr.message);
+        }
+      } else {
+        console.warn('⚠️ [Database Seed] SMTP credentials unconfigured on host environment. Skipping developer welcome email dispatch.');
+      }
     } catch (devErr) {
-      console.error('🚨 [Database] Failed to seed master dev credentials or send email:', devErr.message);
+      console.error('🚨 [Database] Failed to seed master dev credentials:', devErr.message);
     }
   }).catch((err) => {
     console.error('🚨 [Database] Failed to alter users schema for forgot-password:', err.message);
