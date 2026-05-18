@@ -2,6 +2,20 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { useAuth } from '../context/AuthContext';
+
+// Dynamic Dashboard Index redirection to bypass page loops
+function DashboardIndex() {
+  const { userProfile } = useAuth();
+  if (!userProfile) return <Navigate to="/login" replace />;
+  if (userProfile.role === 'supreme_admin') {
+    return <Navigate to="/dashboard/command" replace />;
+  } else if (userProfile.role === 'student') {
+    return <Navigate to="/dashboard/student" replace />;
+  } else {
+    return <Navigate to="/dashboard/leader" replace />;
+  }
+}
 
 // Layouts
 import RootLayout from '../layouts/RootLayout';
@@ -74,7 +88,7 @@ export default function AppRoutes() {
 
         {/* Secure Dashboard Pages Group */}
         <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard/student" replace />} />
+          <Route index element={<DashboardIndex />} />
           
           <Route path="student" element={
             <ProtectedRoute allowedRoles={['student']}>

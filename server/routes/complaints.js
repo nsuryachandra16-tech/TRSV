@@ -100,10 +100,10 @@ router.get('/public/logs', async (req, res) => {
  * 1. Submit a dynamic complaint ticket (Students only)
  */
 router.post('/', requireRole(['student']), async (req, res) => {
-  const { title, description, category, urgency, attachmentUrl, anonymous, emergency_flag, proofs } = req.body;
+  const { title, description, category, urgency, attachmentUrl, anonymous, emergency_flag, proofs, complainant_name, complainant_mobile, college_school_address } = req.body;
 
-  if (!title || !description || !category) {
-    return res.status(400).json({ success: false, message: 'Grievance title, category, and description are required.' });
+  if (!complainant_name || !complainant_mobile || !college_school_address || !description || !category) {
+    return res.status(400).json({ success: false, message: 'Complainant name, mobile number, college/school address, category, and issue description are required.' });
   }
 
   try {
@@ -114,10 +114,10 @@ router.post('/', requireRole(['student']), async (req, res) => {
     const isEmergency = urgency === 'critical' || emergency_flag === true;
 
     const result = await query(
-      `INSERT INTO complaints (title, description, category, urgency, status, student_id, constituency_id, college_id, attachment_url, anonymous, emergency_flag) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO complaints (title, description, category, urgency, status, student_id, constituency_id, college_id, attachment_url, anonymous, emergency_flag, complainant_name, complainant_mobile, college_school_address) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
       [
-        title,
+        title || `Grievance from ${complainant_name}`,
         description,
         category,
         urgency || 'medium',
@@ -127,7 +127,10 @@ router.post('/', requireRole(['student']), async (req, res) => {
         college_id,
         attachmentUrl || null,
         anonymous || false,
-        isEmergency
+        isEmergency,
+        complainant_name,
+        complainant_mobile,
+        college_school_address
       ]
     );
 

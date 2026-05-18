@@ -11,10 +11,25 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(() => {
     const cached = localStorage.getItem('tsrv_cached_profile');
-    return cached ? JSON.parse(cached) : null;
+    try {
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    const cached = localStorage.getItem('tsrv_cached_profile');
+    try {
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return { uid: parsed.id, email: parsed.email };
+      }
+    } catch (e) {
+      // Ignored
+    }
+    return null;
   });
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(() => localStorage.getItem('tsrv_session_token') || null);
@@ -43,6 +58,7 @@ export const AuthProvider = ({ children }) => {
       
       if (data.success) {
         setUserProfile(data.user);
+        setCurrentUser({ uid: data.user.id, email: data.user.email });
         // Cache user role and full profile globally to prevent logout on reload
         localStorage.setItem('tsrv_role', data.user.role);
         localStorage.setItem('tsrv_cached_profile', JSON.stringify(data.user));
@@ -81,7 +97,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initSession = async () => {
       const storedToken = localStorage.getItem('tsrv_session_token');
-      if (storedToken) {
+      const cachedProfile = localStorage.getItem('tsrv_cached_profile');
+
+      if (storedToken && cachedProfile) {
+        try {
+          const profile = JSON.parse(cachedProfile);
+          setCurrentUser({ uid: profile.id, email: profile.email });
+          setUserProfile(profile);
+          setToken(storedToken);
+          
+          // Execute background verification without blocking UI initialization.
+          // This keeps the user logged in immediately and recovers seamlessly if Render is sleeping.
+          fetchDbProfile(storedToken).catch((err) => {
+            console.warn('[AuthContext] Background profile validation deferred:', err);
+          });
+        } catch (e) {
+          handleSessionClear();
+        }
+      } else if (storedToken) {
+        // Token exists but no cache, wait for network validation
         const profile = await fetchDbProfile(storedToken);
         if (profile) {
           setCurrentUser({ uid: profile.id, email: profile.email });

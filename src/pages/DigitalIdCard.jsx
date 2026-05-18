@@ -239,8 +239,8 @@ export default function DigitalIdCard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-        {/* Left Side: 3D ID Card Presentation (5 Cols) */}
-        <div className="lg:col-span-5 flex flex-col items-center gap-6 select-none print:col-span-12">
+        {/* Left Side: 3D ID Card Presentation (5 Cols, or centered 12 for students) */}
+        <div className={`${userProfile?.role === 'student' ? 'lg:col-span-12' : 'lg:col-span-5'} flex flex-col items-center gap-6 select-none print:col-span-12`}>
           
           {/* Card perspective container */}
           <div 
@@ -277,7 +277,7 @@ export default function DigitalIdCard() {
                 <div className="flex items-center justify-between z-10">
                   <div className="flex flex-col text-left">
                     <span className="text-[14px] font-black tracking-widest text-cyan-400 uppercase">TSRV</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">State Governance Card</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Union Member Card</span>
                   </div>
                   <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider flex items-center gap-1 ${statusObj.color}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
@@ -333,7 +333,7 @@ export default function DigitalIdCard() {
               <div className="absolute inset-0 p-6 flex flex-col justify-between backface-hidden rotate-y-180 z-20 bg-inherit rounded-2xl">
                 {/* Back card Header */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Governance Security Chip</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Union Security Chip</span>
                   <div className="w-8 h-6 rounded bg-gradient-to-tr from-amber-500 to-amber-300 relative overflow-hidden border border-amber-600/30">
                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-amber-700/40" />
                     <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-amber-700/40" />
@@ -347,12 +347,12 @@ export default function DigitalIdCard() {
                   <p>Scan the front QR code to verify active database records, grievance resolution performance logs, and commission boundaries.</p>
                 </div>
 
-                {/* Back Card Footer: Emergency Contact info */}
+                {/* Back Card Footer: Support info */}
                 <div className="flex items-end justify-between border-t border-slate-200/20 dark:border-slate-800/80 pt-2.5">
                   <div className="flex flex-col text-left">
-                    <span className="text-[7px] text-slate-400 uppercase tracking-widest">TSRV Support Node</span>
+                    <span className="text-[7px] text-slate-400 uppercase tracking-widest">TSRV Support</span>
                     <span className="text-[9px] font-bold mt-1 text-slate-350 flex items-center gap-1">
-                      <PhoneCall className="w-2.5 h-2.5 text-cyan-400" /> 1800-425-TSRV (8778)
+                      support@tsrv.org
                     </span>
                   </div>
                   <div className="flex flex-col text-right">
@@ -393,7 +393,8 @@ export default function DigitalIdCard() {
         </div>
 
         {/* Right Side: Identity Metrics & Timelines (7 Cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-6 print:col-span-12">
+        {userProfile?.role !== 'student' && (
+          <div className="lg:col-span-7 flex flex-col gap-6 print:col-span-12">
           
           {/* 1. Identity Verification Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
@@ -473,6 +474,7 @@ export default function DigitalIdCard() {
             </div>
           </div>
         </div>
+      )}
       </div>
     </div>
   );
