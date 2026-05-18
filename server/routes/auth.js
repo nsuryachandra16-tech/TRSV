@@ -623,23 +623,18 @@ router.post('/reset-password', async (req, res) => {
 
   const cleanEmail = email.trim().toLowerCase();
 
-  // 🛡️ Development Master Code Bypass (111111, 123456, etc. always succeed!)
-  const isMasterCode = (code.trim() === '111111' || code.trim() === '123456' || code.trim() === '999999' || code.trim() === '584920' || code.trim() === '256406');
+  if (!global.resetOtps || !global.resetOtps[cleanEmail]) {
+    return res.status(400).json({ success: false, message: 'No active recovery request found for this email address.' });
+  }
 
-  if (!isMasterCode) {
-    if (!global.resetOtps || !global.resetOtps[cleanEmail]) {
-      return res.status(400).json({ success: false, message: 'No recovery request active for this email address.' });
-    }
+  const record = global.resetOtps[cleanEmail];
+  if (Date.now() > record.expiresAt) {
+    delete global.resetOtps[cleanEmail];
+    return res.status(400).json({ success: false, message: 'Recovery verification code has expired. Please request a new code.' });
+  }
 
-    const record = global.resetOtps[cleanEmail];
-    if (Date.now() > record.expiresAt) {
-      delete global.resetOtps[cleanEmail];
-      return res.status(400).json({ success: false, message: 'Recovery code has expired. Please request a new code.' });
-    }
-
-    if (record.code !== code.trim()) {
-      return res.status(400).json({ success: false, message: 'Invalid 6-digit recovery code.' });
-    }
+  if (record.code !== code.trim()) {
+    return res.status(400).json({ success: false, message: 'Invalid 6-digit recovery code.' });
   }
 
   try {
