@@ -99,87 +99,264 @@ export default function DigitalIdCard() {
     window.print();
   };
 
-  // High-Resolution ID Card PNG Mock Download Trigger
-  const handleDownload = () => {
-    // Dynamically retrieve QR and card details to compile a printable visual
-    const link = document.createElement('a');
-    link.download = `${identity?.tsrv_member_id || 'TSRV_Card'}_DigitalID.png`;
-    
-    // Generate static mockup representing card structure in a clean layout
+  // Helper to load image safely inside canvas using CORS
+  const loadImage = (src) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = src;
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+    });
+  };
+
+  // High-Resolution ID Card Side-by-Side PNG Mock Download Trigger
+  const handleDownload = async () => {
+    // Generate side-by-side front & back high-resolution layouts
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 380;
+    canvas.width = 960;
+    canvas.height = 320;
     const ctx = canvas.getContext('2d');
 
-    // Base background colors matching HSL dark/light modes
-    if (cardTheme === 'dark') {
-      const gradient = ctx.createLinearGradient(0, 0, 600, 380);
-      gradient.addColorStop(0, '#0f172a');
-      gradient.addColorStop(1, '#020617');
-      ctx.fillStyle = gradient;
-    } else {
-      const gradient = ctx.createLinearGradient(0, 0, 600, 380);
-      gradient.addColorStop(0, '#f8fafc');
-      gradient.addColorStop(1, '#e2e8f0');
-      ctx.fillStyle = gradient;
-    }
-    ctx.fillRect(0, 0, 600, 380);
+    // Load actual profile avatar and actual dynamic QR code asynchronously!
+    const avatarUrl = userProfile?.profile_image || '';
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/#/verify/' + identity?.qr_token)}`;
+    
+    const [avatarImg, qrImg] = await Promise.all([
+      avatarUrl ? loadImage(avatarUrl) : Promise.resolve(null),
+      loadImage(qrUrl)
+    ]);
 
-    // Decorative Borders
-    ctx.strokeStyle = cardTheme === 'dark' ? 'rgba(34, 211, 238, 0.4)' : 'rgba(14, 165, 233, 0.5)';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(8, 8, 584, 364);
+    // Draw backdrop backing
+    const bgGradient = ctx.createLinearGradient(0, 0, 960, 320);
+    bgGradient.addColorStop(0, '#030712');
+    bgGradient.addColorStop(0.5, '#0b0f19');
+    bgGradient.addColorStop(1, '#020617');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, 960, 320);
 
-    // Organization details
-    ctx.fillStyle = cardTheme === 'dark' ? '#22d3ee' : '#0284c7';
-    ctx.font = 'bold 16px Outfit, sans-serif';
-    ctx.fillText('TELANGANA RAKSHANA SENA VIDYARTHI VIBHAGAM', 24, 40);
-
-    ctx.fillStyle = cardTheme === 'dark' ? '#94a3b8' : '#64748b';
-    ctx.font = '9px Outfit, sans-serif';
-    ctx.fillText('STATE STUDENT GOVERNANCE COUNCIL', 24, 55);
-
-    // User details
-    ctx.fillStyle = cardTheme === 'dark' ? '#ffffff' : '#0f172a';
-    ctx.font = 'bold 24px Outfit, sans-serif';
-    ctx.fillText(userProfile?.full_name || 'TSRV Member', 24, 120);
-
-    ctx.fillStyle = cardTheme === 'dark' ? '#38bdf8' : '#0ea5e9';
-    ctx.font = '600 13px Outfit, sans-serif';
-    const dynamicRoleStr = userProfile?.role === 'student' ? 'STUDENT' : 'UNION MEMBER';
-    ctx.fillText(dynamicRoleStr, 24, 142);
-
-    ctx.fillStyle = cardTheme === 'dark' ? '#cbd5e1' : '#334155';
-    ctx.font = '12px Outfit, sans-serif';
-    ctx.fillText(`Constituency: ${userProfile?.constituency_name || 'Statewide Network'}`, 24, 185);
-    ctx.fillText(`Campus: ${userProfile?.college_name || 'Central Campus Node'}`, 24, 205);
-    ctx.fillText(`Issued: ${new Date(identity?.issued_at).toLocaleDateString()}`, 24, 225);
-
-    // Member ID Footer Code
-    ctx.fillStyle = cardTheme === 'dark' ? '#38bdf8' : '#0ea5e9';
-    ctx.font = 'bold 22px Courier New, monospace';
-    ctx.fillText(identity?.tsrv_member_id || 'TSRV-HQ-0001', 24, 305);
-
-    ctx.fillStyle = cardTheme === 'dark' ? '#10b981' : '#059669';
-    ctx.font = 'bold 12px Outfit, sans-serif';
-    ctx.fillText(`VERIFIED OFFICIAL [${identity?.verification_status || 'ACTIVE'}]`, 24, 335);
-
-    // Draw Circular Verification Security Seal instead of Front QR
-    ctx.fillStyle = cardTheme === 'dark' ? 'rgba(34, 211, 238, 0.1)' : 'rgba(14, 165, 233, 0.1)';
-    ctx.strokeStyle = cardTheme === 'dark' ? '#22d3ee' : '#0ea5e9';
-    ctx.lineWidth = 3;
+    // Draw background neon particle glow highlights
+    ctx.fillStyle = 'rgba(34, 211, 238, 0.03)';
     ctx.beginPath();
-    ctx.arc(485, 175, 45, 0, 2 * Math.PI);
+    ctx.arc(200, 100, 180, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(760, 220, 180, 0, 2 * Math.PI);
+    ctx.fill();
 
-    ctx.fillStyle = cardTheme === 'dark' ? '#22d3ee' : '#0ea5e9';
-    ctx.font = 'bold 11px Outfit, sans-serif';
+    // Helper to draw rounded rectangle cards
+    const drawRoundedRect = (c, x, y, width, height, radius, fillStyle, strokeStyle, lineWidth) => {
+      c.beginPath();
+      c.moveTo(x + radius, y);
+      c.lineTo(x + width - radius, y);
+      c.quadraticCurveTo(x + width, y, x + width, y + radius);
+      c.lineTo(x + width, y + height - radius);
+      c.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      c.lineTo(x + radius, y + height);
+      c.quadraticCurveTo(x, y + height, x, y + height - radius);
+      c.lineTo(x, y + radius);
+      c.quadraticCurveTo(x, y, x + radius, y);
+      c.closePath();
+      if (fillStyle) {
+        c.fillStyle = fillStyle;
+        c.fill();
+      }
+      if (strokeStyle) {
+        c.strokeStyle = strokeStyle;
+        c.lineWidth = lineWidth || 1;
+        c.stroke();
+      }
+    };
+
+    // Cards dimensions
+    const cW = 420;
+    const cH = 260;
+    const cY = 30;
+    const fX = 30;   // Front Card X
+    const bX = 510;  // Back Card X
+
+    // Card background linear gradient
+    const cardBgGradient = (x) => {
+      const g = ctx.createLinearGradient(x, cY, x + cW, cY + cH);
+      g.addColorStop(0, '#090d16');
+      g.addColorStop(1, '#111827');
+      return g;
+    };
+
+    // ----------------------------------------------------
+    // DRAW FRONT CARD FACE
+    // ----------------------------------------------------
+    drawRoundedRect(ctx, fX, cY, cW, cH, 16, cardBgGradient(fX), 'rgba(34, 211, 238, 0.25)', 2);
+
+    // Front Card Header
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 13px Outfit, sans-serif';
+    ctx.fillText('TELANGANA RAKSHANA SENA VIDYARTHI VIBHAGAM', fX + 24, cY + 36);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 7px Outfit, sans-serif';
+    ctx.fillText('STATE STUDENT GOVERNANCE COUNCIL', fX + 24, cY + 48);
+
+    // Dynamic verification status tag in header
+    const statusText = identity?.verification_status?.toUpperCase() || 'ACTIVE';
+    drawRoundedRect(ctx, fX + cW - 100, cY + 24, 76, 16, 8, 'rgba(16, 185, 129, 0.15)', '#10b981', 1);
+    ctx.fillStyle = '#10b981';
+    ctx.font = 'bold 8px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('VERIFIED', 485, 170);
-    ctx.fillText('SECURE', 485, 185);
+    ctx.fillText(statusText, fX + cW - 62, cY + 35);
+    ctx.textAlign = 'left'; // Reset
+
+    // Draw Profile Avatar image rounded or standard letter initials!
+    const avatarX = fX + 24;
+    const avatarY = cY + 68;
+    const avatarSize = 64;
+
+    if (avatarImg) {
+      ctx.save();
+      // Draw circular avatar masking path
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+      ctx.restore();
+      // Border outline
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, 2 * Math.PI);
+      ctx.stroke();
+    } else {
+      // Fallback: Custom Letter initial badge
+      const initGrad = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
+      initGrad.addColorStop(0, '#0ea5e9');
+      initGrad.addColorStop(1, '#22d3ee');
+      drawRoundedRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 12, initGrad, null);
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      const initials = userProfile?.full_name ? userProfile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'SU';
+      ctx.fillText(initials, avatarX + avatarSize/2, avatarY + avatarSize/2 + 8);
+      ctx.textAlign = 'left'; // Reset
+    }
+
+    // Name & Role
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Outfit, sans-serif';
+    ctx.fillText(userProfile?.full_name || 'Surya', avatarX + avatarSize + 16, avatarY + 22);
+
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 10px Outfit, sans-serif';
+    const roleStr = userProfile?.role === 'student' ? 'STUDENT' : 'UNION MEMBER';
+    ctx.fillText(roleStr, avatarX + avatarSize + 16, avatarY + 38);
+
+    // Constituency & Campus Details (Clean wrapping to avoid overlap)
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '9px Outfit, sans-serif';
+    
+    const constituencyVal = `Constituency: ${userProfile?.constituency_name || 'State Headquarters'}`;
+    const campusVal = `Campus: ${userProfile?.college_name || 'Statewide Council Node'}`;
+    const issuedVal = `Issued: ${new Date(identity?.issued_at).toLocaleDateString()}`;
+
+    ctx.fillText(constituencyVal, avatarX + avatarSize + 16, avatarY + 54);
+    ctx.fillText(campusVal.length > 40 ? campusVal.substring(0, 38) + '...' : campusVal, avatarX + avatarSize + 16, avatarY + 68);
+    ctx.fillText(issuedVal, avatarX + avatarSize + 16, avatarY + 82);
+
+    // Front Card Footer
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '8px Outfit, sans-serif';
+    ctx.fillText('TSRV SYSTEM NODE ID', fX + 24, cY + cH - 38);
+    
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 15px Courier New, monospace';
+    ctx.fillText(identity?.tsrv_member_id || 'TSRV-KHA-0001', fX + 24, cY + cH - 20);
+
+    // Verified Seal Badge at bottom-right
+    const badgeX = fX + cW - 74;
+    const badgeY = cY + cH - 44;
+    drawRoundedRect(ctx, badgeX, badgeY, 50, 26, 6, 'rgba(34, 211, 238, 0.08)', 'rgba(34, 211, 238, 0.25)', 1);
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 7px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('VERIFIED', badgeX + 25, badgeY + 11);
+    ctx.fillText('SECURE', badgeX + 25, badgeY + 20);
     ctx.textAlign = 'left';
 
+    // ----------------------------------------------------
+    // DRAW BACK CARD FACE
+    // ----------------------------------------------------
+    drawRoundedRect(ctx, bX, cY, cW, cH, 16, cardBgGradient(bX), 'rgba(34, 211, 238, 0.25)', 2);
+
+    // Back card Header
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 11px Outfit, sans-serif';
+    ctx.fillText('TSRV SECURE DATABASE GRID', bX + 24, cY + 36);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 7px Outfit, sans-serif';
+    ctx.fillText('SECURE REAL-TIME VERIFICATION PORTAL', bX + 24, cY + 48);
+
+    // Gold security chip
+    const chipX = bX + cW - 64;
+    const chipY = cY + 24;
+    const chipGrad = ctx.createLinearGradient(chipX, chipY, chipX + 40, chipY + 26);
+    chipGrad.addColorStop(0, '#f59e0b');
+    chipGrad.addColorStop(0.5, '#fbbf24');
+    chipGrad.addColorStop(1, '#d97706');
+    drawRoundedRect(ctx, chipX, chipY, 40, 26, 6, chipGrad, 'rgba(180, 83, 9, 0.3)', 1);
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(chipX + 20, chipY); ctx.lineTo(chipX + 20, chipY + 26);
+    ctx.moveTo(chipX, chipY + 13); ctx.lineTo(chipX + 40, chipY + 13);
+    ctx.stroke();
+
+    // Centered Large QR Code block
+    const qrSize = 100;
+    const qrPosX = bX + (cW - qrSize) / 2;
+    const qrPosY = cY + 62;
+
+    // Draw white contrast base frame
+    drawRoundedRect(ctx, qrPosX - 6, qrPosY - 6, qrSize + 12, qrSize + 12, 10, '#ffffff', 'rgba(34, 211, 238, 0.2)', 1.5);
+    
+    if (qrImg) {
+      ctx.drawImage(qrImg, qrPosX, qrPosY, qrSize, qrSize);
+    } else {
+      // Fallback: draw placeholder QR grid
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(qrPosX, qrPosY, qrSize, qrSize);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(qrPosX + 20, qrPosY + 20, 60, 60);
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(qrPosX + 35, qrPosY + 35, 30, 30);
+    }
+
+    // Label below QR
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 7px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SCAN TO AUDIT PROFILE', bX + cW/2, qrPosY + qrSize + 22);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 5px Outfit, sans-serif';
+    ctx.fillText('NEON POSTGRESQL HOSTED LEDGER', bX + cW/2, qrPosY + qrSize + 30);
+    ctx.textAlign = 'left'; // Reset
+
+    // Back card Footer
+    ctx.fillStyle = '#64748b';
+    ctx.font = '7px Outfit, sans-serif';
+    ctx.fillText('System Node', bX + 24, cY + cH - 36);
+    ctx.fillText('Node Region', bX + cW - 120, cY + cH - 36);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'bold 9px Outfit, sans-serif';
+    ctx.fillText('TSRV-V2.5.0', bX + 24, cY + cH - 22);
+    ctx.fillText(userProfile?.constituency_name || 'Statewide Command', bX + cW - 120, cY + cH - 22);
+
+    // Trigger immediate link download
+    const link = document.createElement('a');
+    link.download = `${identity?.tsrv_member_id || 'TSRV_Card'}_DigitalID.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
