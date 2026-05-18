@@ -22,11 +22,13 @@ export default function RootLayout() {
       <header className="sticky top-0 z-40 w-full px-4 sm:px-6 py-4 transition-all duration-300">
         <nav className="max-w-7xl mx-auto rounded-2xl glass-panel-light dark:glass-panel-dark glass-card-border-light dark:glass-card-border-dark px-4 sm:px-6 py-3 flex items-center justify-between shadow-premium-light dark:shadow-premium-dark relative">
           
-          {/* Logo with Shield Icon */}
+          {/* Logo with TRSV Image */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-cyan-400 shadow-glow-cyan">
-              <ShieldAlert className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
-            </div>
+            <img 
+              src="/trsv.jpeg" 
+              alt="TSRV Logo" 
+              className="w-9 h-9 rounded-xl object-cover border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.15)] transition-transform group-hover:scale-105 shrink-0"
+            />
             <div className="flex flex-col">
               <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-600 via-cyan-600 to-blue-700 dark:from-sky-400 dark:via-cyan-400 dark:to-blue-500">
                 TSRV
@@ -175,9 +177,11 @@ export default function RootLayout() {
           {/* Logo & Info column */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center">
-                <ShieldAlert className="w-4.5 h-4.5 text-white" />
-              </div>
+              <img 
+                src="/trsv.jpeg" 
+                alt="TSRV Logo" 
+                className="w-8 h-8 rounded-lg object-cover border border-cyan-500/30"
+              />
               <span className="font-black text-xl tracking-tight text-slate-800 dark:text-white">TSRV</span>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
