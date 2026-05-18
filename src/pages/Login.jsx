@@ -69,7 +69,7 @@ export default function Login() {
     
     const cleanEmail = resetEmail.trim().toLowerCase();
     if (cleanEmail === 'admin@tsrv.gov.in' || cleanEmail === 'supreme.admin@tsrv.gov.in' || cleanEmail.endsWith('@tsrv.gov.in')) {
-      setResetError('Admin credentials cannot be changed. Contact Developer: Suryachandra.');
+      setResetError('For safety purposes, admin credentials cannot be changed. Please contact Developer Suryachandra.');
       setResetLoading(false);
       return;
     }

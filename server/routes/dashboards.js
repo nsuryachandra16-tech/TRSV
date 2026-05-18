@@ -225,8 +225,8 @@ router.get('/eligible-users', requireRole(['supreme_admin']), async (req, res) =
 /**
  * 5. Update a user's role and assign them to a constituency or college (Supreme Admin Only)
  */
-router.post('/assign-leader', requireRole(['supreme_admin']), async (req, res) => {
-  const { userId, role, constituencyId, collegeId } = req.body;
+const handleAssignLeaderLogic = async (req, res) => {
+  const { userId, role, constituencyId, collegeId, newEmail } = req.body;
 
   if (!userId || !role) {
     return res.status(400).json({ success: false, message: 'User ID and target role are required.' });
@@ -234,16 +234,31 @@ router.post('/assign-leader', requireRole(['supreme_admin']), async (req, res) =
 
   try {
     // Validate target role bounds
-    if (!['secretary', 'general_secretary', 'vice_president', 'president', 'student'].includes(role)) {
+    if (!['secretary', 'general_secretary', 'vice_president', 'president', 'student', 'supreme_admin'].includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid target role designation.' });
     }
 
-    const userCheck = await query('SELECT full_name, role FROM users WHERE id = $1', [userId]);
+    const userCheck = await query('SELECT full_name, email, role FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    const { full_name, role: previousRole } = userCheck.rows[0];
+    const { full_name, email: oldEmail, role: previousRole } = userCheck.rows[0];
+
+    // Determine final email address (if updating)
+    let finalEmail = oldEmail;
+    if (newEmail && newEmail.trim() !== '') {
+      const cleanNewEmail = newEmail.trim().toLowerCase();
+      // Ensure the email is not already taken by another user
+      const emailCheck = await query('SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2', [cleanNewEmail, userId]);
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({ success: false, message: 'This email address is already registered to another account.' });
+      }
+      
+      // Update email first
+      await query('UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2', [cleanNewEmail, userId]);
+      finalEmail = cleanNewEmail;
+    }
 
     // Assign role and location linkages
     const result = await query(
@@ -255,6 +270,17 @@ router.post('/assign-leader', requireRole(['supreme_admin']), async (req, res) =
        WHERE id = $4 RETURNING *`,
       [role, constituencyId || null, collegeId || null, userId]
     );
+
+    const updatedUser = result.rows[0];
+
+    // Get constituency name for email context
+    let constituencyName = 'Statewide Headquarters';
+    if (constituencyId) {
+      const conCheck = await query('SELECT constituency_name FROM constituencies WHERE id = $1', [constituencyId]);
+      if (conCheck.rows.length > 0) {
+        constituencyName = conCheck.rows[0].constituency_name;
+      }
+    }
 
     // Create a live direct notification for the user
     await query(
@@ -273,11 +299,94 @@ router.post('/assign-leader', requireRole(['supreme_admin']), async (req, res) =
       `Promoted '${full_name}' from '${previousRole}' to '${role}'`
     ]);
 
-    res.json({ success: true, message: 'Leadership role assigned successfully.', user: result.rows[0] });
+    // Send direct SMTP invitation / update email if the user is set to an admin/leader role
+    const isNewAdmin = ['secretary', 'general_secretary', 'vice_president', 'president', 'supreme_admin'].includes(role);
+    if (isNewAdmin && finalEmail) {
+      try {
+        const nodemailerModule = await import('nodemailer');
+        const nodemailer = nodemailerModule.default || nodemailerModule;
+        
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+
+        if (smtpUser && smtpPass) {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_PORT === '465',
+            auth: { user: smtpUser, pass: smtpPass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
+            tls: { rejectUnauthorized: false }
+          });
+
+          const isMailChanged = newEmail && newEmail.trim() !== '' && newEmail.trim().toLowerCase() !== oldEmail.toLowerCase();
+          const emailSubject = isMailChanged
+            ? `[TSRV SECURITY GRID] Admin Credentials Calibrated - New Email Access`
+            : `[TSRV SECURITY GRID] Administrative Access Granted - Role: ${role.toUpperCase()}`;
+
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+              <div style="text-align: center; margin-bottom: 25px;">
+                <h2 style="color: #06b6d4; margin: 0; font-size: 22px; font-weight: 800;">TSRV Security Grid</h2>
+                <span style="font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1.5px; text-transform: uppercase;">Telangana Rakshana Sena Vidyarthi</span>
+              </div>
+              <p style="font-size: 15px; color: #1e293b; line-height: 1.6; font-weight: bold;">Hey ${full_name},</p>
+              <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+                ${isMailChanged 
+                  ? 'Your registered email has been updated, and your administrative role access keys have been calibrated.' 
+                  : 'You have been granted administrative access to the Telangana R.S.V. state student protection portal.'
+                }
+              </p>
+              
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: left;">
+                <div style="margin-bottom: 12px;">
+                  <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Assigned Role</span>
+                  <strong style="font-size: 15px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">${role.replace('_', ' ')}</strong>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Authorized Email Portal</span>
+                  <strong style="font-size: 14px; color: #0f172a;">${finalEmail}</strong>
+                </div>
+                <div>
+                  <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Target Access Coordinates</span>
+                  <strong style="font-size: 14px; color: #0f172a;">${constituencyName}</strong>
+                </div>
+              </div>
+              
+              <p style="font-size: 13px; color: #ef4444; line-height: 1.6; font-weight: 650; margin-top: 20px; border-left: 3px solid #ef4444; padding-left: 10px;">
+                SECURITY REQUIREMENT: You are now an active guardian of the student safety ecosystem. Always protect student complaints and coordinates with absolute confidentiality and state honors.
+              </p>
+              <div style="border-top: 1px solid #f1f5f9; margin-top: 30px; padding-top: 15px; text-align: center;">
+                <span style="font-size: 10px; color: #94a3b8;">TSRV Statewide Student Protection Ecosystem © 2026</span>
+              </div>
+            </div>
+          `;
+
+          await transporter.sendMail({
+            from: `"TSRV Security Grid" <${process.env.SMTP_SENDER || smtpUser}>`,
+            to: finalEmail,
+            subject: emailSubject,
+            html: emailHtml
+          });
+          console.log(`✉️ [Admin Invite] Access invitation email successfully dispatched to: ${finalEmail}`);
+        } else {
+          console.warn('⚠️ [Admin Invite] SMTP user/pass is unconfigured. Skipping email dispatch.');
+        }
+      } catch (mailErr) {
+        console.error('🚨 [Admin Invite] Failed to dispatch email:', mailErr.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Leadership role assigned successfully.', user: updatedUser });
   } catch (error) {
     console.error('🚨 [Leader Assignment Error]:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
+
+router.post('/assign-leader', requireRole(['supreme_admin']), handleAssignLeaderLogic);
+router.put('/promote', requireRole(['supreme_admin']), handleAssignLeaderLogic);
 
 export default router;

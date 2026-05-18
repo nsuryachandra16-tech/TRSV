@@ -519,7 +519,7 @@ router.post('/forgot-password', async (req, res) => {
   if (cleanEmail === SUPREME_EMAIL.toLowerCase() || cleanEmail === 'admin@tsrv.gov.in') {
     return res.status(400).json({
       success: false,
-      message: 'Admin credentials cannot be changed. Contact Developer: Suryachandra.'
+      message: 'For safety purposes, admin credentials cannot be changed. Please contact Developer Suryachandra.'
     });
   }
 
@@ -527,14 +527,14 @@ router.post('/forgot-password', async (req, res) => {
     // Check if the user exists and is a student
     const checkUser = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
     if (checkUser.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'No registered student account found with this email address.' });
+      return res.status(404).json({ success: false, message: 'No registered account found with this email address.' });
     }
 
     const user = checkUser.rows[0];
     if (user.role !== 'student') {
       return res.status(400).json({
         success: false,
-        message: 'Admin credentials cannot be changed. Contact Developer: Suryachandra.'
+        message: 'For safety purposes, admin credentials cannot be changed. Please contact Developer Suryachandra.'
       });
     }
 
