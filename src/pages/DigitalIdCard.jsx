@@ -3,6 +3,7 @@ import { ShieldCheck, RefreshCw, FlipHorizontal, Download, Printer, ShieldAlert,
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/GlassCard';
 import PremiumButton from '../components/PremiumButton';
+import QRCode from 'qrcode';
 
 export default function DigitalIdCard() {
   const { userProfile } = useAuth();
@@ -12,6 +13,7 @@ export default function DigitalIdCard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
   
   // UI Interactive States
   const [isFlipped, setIsFlipped] = useState(false);
@@ -53,6 +55,21 @@ export default function DigitalIdCard() {
   useEffect(() => {
     loadIdentityData();
   }, []);
+
+  // Generate QR code locally as a data URL whenever the identity token changes
+  useEffect(() => {
+    if (identity?.qr_token) {
+      const verifyUrl = `${window.location.origin}/#/verify/${identity.qr_token}`;
+      QRCode.toDataURL(verifyUrl, {
+        width: 300,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'H'
+      })
+        .then(url => setQrDataUrl(url))
+        .catch(err => console.error('QR generation failed:', err));
+    }
+  }, [identity?.qr_token]);
 
   // 3D Tilt Logic
   const handleMouseMove = (e) => {
@@ -118,13 +135,12 @@ export default function DigitalIdCard() {
     canvas.height = 320;
     const ctx = canvas.getContext('2d');
 
-    // Load actual profile avatar and actual dynamic QR code asynchronously!
+    // Load actual profile avatar and the locally-generated QR code
     const avatarUrl = userProfile?.profile_image || '';
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/#/verify/' + identity?.qr_token)}`;
     
     const [avatarImg, qrImg] = await Promise.all([
       avatarUrl ? loadImage(avatarUrl) : Promise.resolve(null),
-      loadImage(qrUrl)
+      qrDataUrl ? loadImage(qrDataUrl) : Promise.resolve(null)
     ]);
 
     // Draw backdrop backing
@@ -533,11 +549,15 @@ export default function DigitalIdCard() {
                 {/* Back card Middle: LARGE CENTRAL QR CODE */}
                 <div className="flex flex-col items-center justify-center my-auto gap-1.5 py-1.5">
                   <div className="p-1.5 rounded-xl bg-white border border-cyan-500/20 shadow-glow-cyan/15 flex items-center justify-center shrink-0">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/#/verify/' + identity?.qr_token)}`} 
-                      alt="Scannable Security QR" 
-                      className="w-24 h-24"
-                    />
+                    {qrDataUrl ? (
+                      <img 
+                        src={qrDataUrl} 
+                        alt="Scannable Security QR" 
+                        className="w-24 h-24"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 flex items-center justify-center text-[8px] text-slate-400 animate-pulse">Generating...</div>
+                    )}
                   </div>
                   <div className="flex flex-col items-center gap-0.5 mt-0.5">
                     <span className="text-[7px] font-black text-cyan-400 tracking-widest uppercase">SCAN TO AUDIT PROFILE</span>
