@@ -11,9 +11,11 @@ import ThreeEmblem from '../components/ThreeEmblem';
 import GlassCard from '../components/GlassCard';
 import PremiumButton from '../components/PremiumButton';
 import AnimatedSection from '../components/AnimatedSection';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { currentUser, userProfile, logout } = useAuth();
 
   return (
     <div className="w-full flex flex-col gap-28 py-4 relative overflow-hidden select-none">
@@ -41,22 +43,56 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-5 mt-2">
-            <PremiumButton 
-              variant="primary" 
-              size="lg" 
-              icon={<ShieldAlert className="w-5 h-5" />}
-              onClick={() => navigate('/signup')}
-            >
-              Register a Complaint
-            </PremiumButton>
-            <PremiumButton 
-              variant="secondary" 
-              size="lg" 
-              icon={<ArrowRight className="w-5 h-5" />}
-              onClick={() => navigate('/login')}
-            >
-              Admin Login
-            </PremiumButton>
+            {currentUser && userProfile ? (
+              <>
+                <PremiumButton 
+                  variant="primary" 
+                  size="lg" 
+                  icon={<ShieldCheck className="w-5 h-5" />}
+                  onClick={() => {
+                    if (userProfile.role === 'supreme_admin') {
+                      navigate('/dashboard/command');
+                    } else if (userProfile.role === 'student') {
+                      navigate('/dashboard/student');
+                    } else {
+                      navigate('/dashboard/leader');
+                    }
+                  }}
+                >
+                  Go to Dashboard
+                </PremiumButton>
+                <PremiumButton 
+                  variant="secondary" 
+                  size="lg" 
+                  icon={<ArrowRight className="w-5 h-5" />}
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                >
+                  Sign Out
+                </PremiumButton>
+              </>
+            ) : (
+              <>
+                <PremiumButton 
+                  variant="primary" 
+                  size="lg" 
+                  icon={<ShieldAlert className="w-5 h-5" />}
+                  onClick={() => navigate('/signup')}
+                >
+                  Register a Complaint
+                </PremiumButton>
+                <PremiumButton 
+                  variant="secondary" 
+                  size="lg" 
+                  icon={<ArrowRight className="w-5 h-5" />}
+                  onClick={() => navigate('/login')}
+                >
+                  Admin Login
+                </PremiumButton>
+              </>
+            )}
           </div>
 
           {/* Quick core metrics summary */}
@@ -414,12 +450,44 @@ export default function Home() {
           </p>
 
           <div className="flex gap-4 mt-2">
-            <PremiumButton variant="primary" size="md" onClick={() => navigate('/signup')}>
-              Get Started Now
-            </PremiumButton>
-            <PremiumButton variant="secondary" size="md" onClick={() => navigate('/login')}>
-              Admin Panel
-            </PremiumButton>
+            {currentUser && userProfile ? (
+              <>
+                <PremiumButton 
+                  variant="primary" 
+                  size="md" 
+                  onClick={() => {
+                    if (userProfile.role === 'supreme_admin') {
+                      navigate('/dashboard/command');
+                    } else if (userProfile.role === 'student') {
+                      navigate('/dashboard/student');
+                    } else {
+                      navigate('/dashboard/leader');
+                    }
+                  }}
+                >
+                  Go to Dashboard
+                </PremiumButton>
+                <PremiumButton 
+                  variant="secondary" 
+                  size="md" 
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                >
+                  Sign Out
+                </PremiumButton>
+              </>
+            ) : (
+              <>
+                <PremiumButton variant="primary" size="md" onClick={() => navigate('/signup')}>
+                  Get Started Now
+                </PremiumButton>
+                <PremiumButton variant="secondary" size="md" onClick={() => navigate('/login')}>
+                  Admin Panel
+                </PremiumButton>
+              </>
+            )}
           </div>
         </GlassCard>
       </section>

@@ -7,7 +7,19 @@ import PremiumButton from '../components/PremiumButton';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, currentUser, userProfile } = useAuth();
+
+  React.useEffect(() => {
+    if (currentUser && userProfile) {
+      if (userProfile.role === 'supreme_admin') {
+        navigate('/dashboard/command');
+      } else if (userProfile.role === 'student') {
+        navigate('/dashboard/student');
+      } else {
+        navigate('/dashboard/leader');
+      }
+    }
+  }, [currentUser, userProfile, navigate]);
 
   const [formData, setFormData] = useState({ 
     name: '', 

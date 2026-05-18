@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
 import PremiumButton from '../components/PremiumButton';
 import FloatingParticles from '../components/FloatingParticles';
+import { useAuth } from '../context/AuthContext';
 
 export default function RootLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUser, userProfile, logout } = useAuth();
 
   const navLinks = [];
 
@@ -68,23 +70,58 @@ export default function RootLayout() {
 
           {/* Right Action buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <PremiumButton 
-              variant="glow" 
-              size="sm" 
-              icon={<MessageCircle className="w-4 h-4" />}
-              onClick={() => navigate('/signup')}
-            >
-              Register a Complaint
-            </PremiumButton>
-            
-            <PremiumButton 
-              variant="secondary" 
-              size="sm" 
-              icon={<Key className="w-4 h-4" />}
-              onClick={() => navigate('/login')}
-            >
-              Admin Login
-            </PremiumButton>
+            {currentUser && userProfile ? (
+              <>
+                <PremiumButton 
+                  variant="glow" 
+                  size="sm" 
+                  icon={<MessageCircle className="w-4 h-4" />}
+                  onClick={() => {
+                    if (userProfile.role === 'supreme_admin') {
+                      navigate('/dashboard/command');
+                    } else if (userProfile.role === 'student') {
+                      navigate('/dashboard/student');
+                    } else {
+                      navigate('/dashboard/leader');
+                    }
+                  }}
+                >
+                  Go to Dashboard
+                </PremiumButton>
+                
+                <PremiumButton 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={<Key className="w-4 h-4" />}
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                >
+                  Sign Out
+                </PremiumButton>
+              </>
+            ) : (
+              <>
+                <PremiumButton 
+                  variant="glow" 
+                  size="sm" 
+                  icon={<MessageCircle className="w-4 h-4" />}
+                  onClick={() => navigate('/signup')}
+                >
+                  Register a Complaint
+                </PremiumButton>
+                
+                <PremiumButton 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={<Key className="w-4 h-4" />}
+                  onClick={() => navigate('/login')}
+                >
+                  Admin Login
+                </PremiumButton>
+              </>
+            )}
             
             <ThemeToggle />
           </div>
@@ -136,30 +173,68 @@ export default function RootLayout() {
             <div className="h-[1px] bg-slate-200 dark:bg-slate-800 my-1" />
             
             <div className="flex flex-col gap-3">
-              <PremiumButton 
-                variant="primary" 
-                size="md" 
-                className="w-full"
-                icon={<MessageCircle className="w-4 h-4" />}
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/signup');
-                }}
-              >
-                Register a Complaint
-              </PremiumButton>
-              <PremiumButton 
-                variant="secondary" 
-                size="md" 
-                className="w-full"
-                icon={<Key className="w-4 h-4" />}
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/login');
-                }}
-              >
-                Admin Login
-              </PremiumButton>
+              {currentUser && userProfile ? (
+                <>
+                  <PremiumButton 
+                    variant="primary" 
+                    size="md" 
+                    className="w-full"
+                    icon={<MessageCircle className="w-4 h-4" />}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (userProfile.role === 'supreme_admin') {
+                        navigate('/dashboard/command');
+                      } else if (userProfile.role === 'student') {
+                        navigate('/dashboard/student');
+                      } else {
+                        navigate('/dashboard/leader');
+                      }
+                    }}
+                  >
+                    Go to Dashboard
+                  </PremiumButton>
+                  <PremiumButton 
+                    variant="secondary" 
+                    size="md" 
+                    className="w-full"
+                    icon={<Key className="w-4 h-4" />}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                      navigate('/');
+                    }}
+                  >
+                    Sign Out
+                  </PremiumButton>
+                </>
+              ) : (
+                <>
+                  <PremiumButton 
+                    variant="primary" 
+                    size="md" 
+                    className="w-full"
+                    icon={<MessageCircle className="w-4 h-4" />}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/signup');
+                    }}
+                  >
+                    Register a Complaint
+                  </PremiumButton>
+                  <PremiumButton 
+                    variant="secondary" 
+                    size="md" 
+                    className="w-full"
+                    icon={<Key className="w-4 h-4" />}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/login');
+                    }}
+                  >
+                    Admin Login
+                  </PremiumButton>
+                </>
+              )}
             </div>
           </motion.div>
         )}

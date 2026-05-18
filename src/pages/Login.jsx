@@ -8,7 +8,20 @@ import PremiumButton from '../components/PremiumButton';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, resetPassword, confirmResetPassword } = useAuth();
+  const { login, resetPassword, confirmResetPassword, currentUser, userProfile } = useAuth();
+
+  React.useEffect(() => {
+    if (currentUser && userProfile) {
+      if (userProfile.role === 'supreme_admin') {
+        navigate('/dashboard/command');
+      } else if (userProfile.role === 'student') {
+        navigate('/dashboard/student');
+      } else {
+        navigate('/dashboard/leader');
+      }
+    }
+  }, [currentUser, userProfile, navigate]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
