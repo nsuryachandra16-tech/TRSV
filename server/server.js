@@ -40,7 +40,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https://unpkg.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org"],
+      imgSrc: ["'self'", "data:", "https://unpkg.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org", "https://api.qrserver.com"],
       connectSrc: ["'self'", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],

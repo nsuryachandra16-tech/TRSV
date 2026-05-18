@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Scan, Upload, ShieldCheck, ShieldAlert, X, HelpCircle, User, Info, ArrowRight, Shield } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import PremiumButton from '../components/PremiumButton';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export default function QrScanExperience() {
   const navigate = useNavigate();
@@ -12,6 +13,76 @@ export default function QrScanExperience() {
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
+
+  // Real Camera scan states
+  const [cameraActive, setCameraActive] = useState(false);
+  const scannerInstanceRef = useRef(null);
+
+  // Stop scanning
+  const stopCameraScanner = async () => {
+    if (scannerInstanceRef.current) {
+      try {
+        await scannerInstanceRef.current.stop();
+      } catch (err) {
+        console.error("Error stopping camera stream:", err);
+      }
+      scannerInstanceRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  // Start scanning
+  const startCameraScanner = async () => {
+    setScanError('');
+    setScanResult(null);
+    setCameraActive(true);
+    
+    setTimeout(async () => {
+      try {
+        const html5Qrcode = new Html5Qrcode("reader");
+        scannerInstanceRef.current = html5Qrcode;
+        
+        await html5Qrcode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: (width, height) => {
+              const size = Math.min(width, height) * 0.7;
+              return { width: size, height: size };
+            }
+          },
+          (decodedText) => {
+            console.log("QR Code read successfully:", decodedText);
+            
+            // Extract the verify token if it's a URL
+            let tokenOrId = decodedText;
+            if (decodedText.includes('/verify/')) {
+              tokenOrId = decodedText.split('/verify/')[1];
+            }
+            
+            executeVerifyQuery(tokenOrId);
+            stopCameraScanner();
+          },
+          (errorMessage) => {
+            // Quietly ignore normal scanning poll messages
+          }
+        );
+      } catch (err) {
+        console.error("Camera startup error:", err);
+        setScanError("Unable to access camera. Please verify camera permissions in your browser.");
+        setCameraActive(false);
+      }
+    }, 100);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (scannerInstanceRef.current) {
+        scannerInstanceRef.current.stop().catch(err => console.error(err));
+      }
+    };
+  }, []);
 
   // Run a high-fidelity verification query to backend database
   const executeVerifyQuery = async (tokenOrId) => {
@@ -91,30 +162,34 @@ export default function QrScanExperience() {
             {/* Viewfinder Bounding Box */}
             <div className="relative w-full max-w-[340px] aspect-square rounded-2xl border-2 border-slate-800 bg-slate-950 flex items-center justify-center overflow-hidden shadow-2xl mt-4">
               
-              {/* Outer corners visual aids */}
-              <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-cyan-400 rounded-tl" />
-              <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-cyan-400 rounded-tr" />
-              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-cyan-400 rounded-bl" />
-              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br" />
-
-              {/* Scanning neon laser beam line overlay */}
-              {scanning && (
-                <div className="absolute left-0 right-0 h-1 bg-cyan-400/90 shadow-[0_0_15px_#22d3ee] z-20 animate-[scanBeam_2s_infinite_ease-in-out]" />
+              {cameraActive ? (
+                <div id="reader" className="w-full h-full object-cover z-10" />
+              ) : (
+                /* Central QR Reticle visual */
+                <div className="w-48 h-48 opacity-30 border border-slate-700 rounded-xl flex items-center justify-center p-6 relative">
+                  <Scan className={`w-28 h-28 text-slate-400 ${scanning ? 'animate-pulse text-cyan-400 opacity-60' : ''}`} />
+                  {scanning && (
+                    <span className="absolute bottom-2 text-[9px] text-cyan-400 uppercase tracking-widest font-black animate-pulse">
+                      Decryption Sweep...
+                    </span>
+                  )}
+                </div>
               )}
 
-              {/* Central QR Reticle visual */}
-              <div className="w-48 h-48 opacity-30 border border-slate-700 rounded-xl flex items-center justify-center p-6 relative">
-                <Scan className={`w-28 h-28 text-slate-400 ${scanning ? 'animate-pulse text-cyan-400 opacity-60' : ''}`} />
-                {scanning && (
-                  <span className="absolute bottom-2 text-[9px] text-cyan-400 uppercase tracking-widest font-black animate-pulse">
-                    Decryption Sweep...
-                  </span>
-                )}
-              </div>
+              {/* Outer corners visual aids */}
+              <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-cyan-400 rounded-tl z-20" />
+              <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-cyan-400 rounded-tr z-20" />
+              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-cyan-400 rounded-bl z-20" />
+              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br z-20" />
+
+              {/* Scanning neon laser beam line overlay */}
+              {(scanning || cameraActive) && (
+                <div className="absolute left-0 right-0 h-1 bg-cyan-400/90 shadow-[0_0_15px_#22d3ee] z-30 animate-[scanBeam_2s_infinite_ease-in-out]" />
+              )}
 
               {/* Video preview mock text info overlay */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono select-none">
-                ACTIVE TERMINAL FEED: Ready
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono select-none z-20">
+                {cameraActive ? 'CAMERA TERMINAL ACTIVE' : 'ACTIVE TERMINAL FEED: Ready'}
               </div>
             </div>
 
@@ -131,14 +206,14 @@ export default function QrScanExperience() {
                 />
               </label>
               <PremiumButton 
-                variant="glow" 
+                variant={cameraActive ? 'danger' : 'glow'} 
                 size="md" 
                 className="flex-1"
                 disabled={scanning}
-                onClick={() => executeVerifyQuery('TSRV-HQ-0001')}
-                icon={<Camera className="w-4 h-4" />}
+                onClick={cameraActive ? stopCameraScanner : startCameraScanner}
+                icon={cameraActive ? <X className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
               >
-                {scanning ? 'Decoding...' : 'Launch Feed'}
+                {cameraActive ? 'Stop Feed' : 'Launch Feed'}
               </PremiumButton>
             </div>
 
@@ -223,7 +298,7 @@ export default function QrScanExperience() {
                   </span>
 
                   <h2 className="text-2xl font-black text-slate-800 dark:text-white mt-1">
-                    {scanResult.verified ? 'Verified Advocate' : 'Invalid Credentials'}
+                    {scanResult.verified ? 'Verified Union Member' : 'Invalid Credentials'}
                   </h2>
 
                   <p className="text-xs text-slate-400 mt-1">

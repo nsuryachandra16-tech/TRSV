@@ -393,11 +393,10 @@ export default function DigitalIdCard() {
         </div>
 
         {/* Right Side: Identity Metrics & Timelines (7 Cols) */}
-        {userProfile?.role !== 'student' && (
-          <div className="lg:col-span-7 flex flex-col gap-6 print:col-span-12">
-          
+        <div className="lg:col-span-7 flex flex-col gap-6 print:col-span-12">
+        
           {/* 1. Identity Verification Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+          <div className={`grid gap-4 w-full ${userProfile?.role === 'supreme_admin' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
             <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
               <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Resolved Issues</span>
               <strong className="text-2xl font-black text-slate-800 dark:text-white">
@@ -405,29 +404,33 @@ export default function DigitalIdCard() {
               </strong>
             </GlassCard>
             <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
-              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Active Tasks</span>
+              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Active Issues</span>
               <strong className="text-2xl font-black text-slate-800 dark:text-white">
                 {metrics?.issues_pending || 0}
               </strong>
             </GlassCard>
-            <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
-              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Campaigns Run</span>
-              <strong className="text-2xl font-black text-slate-800 dark:text-white">
-                {metrics?.active_campaigns || 0}
-              </strong>
-            </GlassCard>
-            <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
-              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Member Rating</span>
-              <strong className={`text-2xl font-black flex items-center gap-1 ${
-                (metrics?.issues_resolved || 0) === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-amber-500'
-              }`}>
-                {(metrics?.issues_resolved || 0) === 0 ? (
-                  <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-900/50 px-2 py-0.5 rounded-md">Not Started</span>
-                ) : (
-                  <>★ {parseFloat(metrics?.rating || 5.00).toFixed(2)}</>
-                )}
-              </strong>
-            </GlassCard>
+            {userProfile?.role === 'supreme_admin' && (
+              <>
+                <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
+                  <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Campaigns Run</span>
+                  <strong className="text-2xl font-black text-slate-800 dark:text-white">
+                    {metrics?.active_campaigns || 0}
+                  </strong>
+                </GlassCard>
+                <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
+                  <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Member Rating</span>
+                  <strong className={`text-2xl font-black flex items-center gap-1 ${
+                    (metrics?.issues_resolved || 0) === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-amber-500'
+                  }`}>
+                    {(metrics?.issues_resolved || 0) === 0 ? (
+                      <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-900/50 px-2 py-0.5 rounded-md">Not Started</span>
+                    ) : (
+                      <>★ {parseFloat(metrics?.rating || 5.00).toFixed(2)}</>
+                    )}
+                  </strong>
+                </GlassCard>
+              </>
+            )}
           </div>
 
           {/* 2. Official Timeline History */}
@@ -474,7 +477,6 @@ export default function DigitalIdCard() {
             </div>
           </div>
         </div>
-      )}
       </div>
     </div>
   );

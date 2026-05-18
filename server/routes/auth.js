@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'tsrv-development-jwt-signing-secret-placeholder';
+const JWT_SECRET = process.env.JWT_SECRET || 'tsrv_quantum_super_secure_secret_hash_key_2026';
 
 // PBKDF2/SHA-512 Secure Salting & Password Hashing Engine
 function hashPassword(password) {
