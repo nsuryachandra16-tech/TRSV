@@ -16,18 +16,20 @@ router.get('/', requireRole(['student', 'secretary', 'general_secretary', 'vice_
     if (role === 'student') {
       // Students see only 'all' or 'student' announcements
       result = await query(
-        `SELECT a.*, u.full_name as author_name, u.role as author_role 
+        `SELECT a.*, u.full_name as author_name, u.role as author_role, con.constituency_name as author_constituency 
          FROM announcements a
          LEFT JOIN users u ON a.author_id = u.id
+         LEFT JOIN constituencies con ON u.constituency_id = con.id
          WHERE a.target_audience IN ('all', 'student') 
          ORDER BY a.created_at DESC`
       );
     } else if (['secretary', 'general_secretary', 'vice_president', 'president'].includes(role)) {
       // Leaders see 'all', 'leader', and their specific role announcements
       result = await query(
-        `SELECT a.*, u.full_name as author_name, u.role as author_role 
+        `SELECT a.*, u.full_name as author_name, u.role as author_role, con.constituency_name as author_constituency 
          FROM announcements a
          LEFT JOIN users u ON a.author_id = u.id
+         LEFT JOIN constituencies con ON u.constituency_id = con.id
          WHERE a.target_audience IN ('all', 'leader', $1) 
          ORDER BY a.created_at DESC`,
         [role]
@@ -35,9 +37,10 @@ router.get('/', requireRole(['student', 'secretary', 'general_secretary', 'vice_
     } else {
       // Supreme Admin sees all circulars
       result = await query(
-        `SELECT a.*, u.full_name as author_name, u.role as author_role 
+        `SELECT a.*, u.full_name as author_name, u.role as author_role, con.constituency_name as author_constituency 
          FROM announcements a
          LEFT JOIN users u ON a.author_id = u.id
+         LEFT JOIN constituencies con ON u.constituency_id = con.id
          ORDER BY a.created_at DESC`
       );
     }

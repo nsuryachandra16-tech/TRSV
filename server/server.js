@@ -26,6 +26,7 @@ import telemetryRouter from './routes/telemetry.js';
 import automationRouter, { runAutoEscalationJob } from './routes/automation.js';
 import identityRouter from './routes/identity.js';
 import chatRouter from './routes/chat.js';
+import notificationsRouter from './routes/notifications.js';
 
 dotenv.config();
 
@@ -112,6 +113,7 @@ app.use('/api/telemetry', telemetryRouter);
 app.use('/api/automation', automationRouter);
 app.use('/api/identity', identityRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (req, res) => {

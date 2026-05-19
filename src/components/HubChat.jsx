@@ -6,12 +6,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function HubChat({ user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [currentChannel, setCurrentChannel] = useState('GH-Global');
+  const [currentChannel, setCurrentChannel] = useState(() => {
+    return localStorage.getItem('tsrv_active_chat_channel') || 'GH-Global';
+  });
   const [constituencies, setConstituencies] = useState([]);
   const [activeChannels, setActiveChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typingUsers, setTypingUsers] = useState({}); // format: { userId: { name, role } }
   const [socketConnected, setSocketConnected] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('tsrv_active_chat_channel', currentChannel);
+  }, [currentChannel]);
 
   // Editing state
   const [editingMessageId, setEditingMessageId] = useState(null);

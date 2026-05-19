@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Shield, 
@@ -32,39 +32,79 @@ export default function DashboardLayout() {
   const pathname = location.pathname;
   const { userProfile, logout } = useAuth();
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'critical',
-      message: '🚨 CRITICAL: Anti-ragging panic signal received in regional cluster.',
-      time: '3 mins ago',
-      read: false
-    },
-    {
-      id: 2,
-      type: 'circular',
-      message: '📢 CENTRAL COMMAND: Calibration of statewide coordinate keys complete.',
-      time: '2 hours ago',
-      read: false
-    },
-    {
-      id: 3,
-      type: 'success',
-      message: '✅ LEDGER RESOLVED: Grievance #104 status updated to AUDITED.',
-      time: '1 day ago',
-      read: true
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const activeLinkRef = useRef(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+
+  const formatTimeAgo = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
-  const handleToggleRead = (id) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: !n.read } : n));
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      if (!token) return;
+      const res = await fetch('/api/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Scroll active sidebar link into view on load and navigation changes
+  useEffect(() => {
+    if (activeLinkRef.current) {
+      activeLinkRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [pathname]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleRead = async (id, currentRead) => {
+    if (currentRead) return;
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      await fetch(`/api/notifications/mark-read/${id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Dynamically resolve and track the active role state based on PostgreSQL auth context
@@ -208,7 +248,7 @@ export default function DashboardLayout() {
         <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-6 custom-sidebar-scrollbar">
           {sidebarLinks.map((section, sIdx) => (
             <div key={sIdx} className="flex flex-col gap-2.5 text-left">
-              <span className="px-3.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="px-3.5 text-[9.5px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
                 {section.category}
               </span>
               <div className="flex flex-col gap-1.5">
@@ -217,23 +257,24 @@ export default function DashboardLayout() {
                   return (
                     <Link
                       key={link.path}
+                      ref={isActive ? activeLinkRef : null}
                       to={link.path}
                       className={`flex items-start gap-3.5 p-3 rounded-2xl transition-all duration-300 relative ${
                         isActive
-                           ? 'text-sky-600 dark:text-cyan-400 bg-slate-100/30 dark:bg-slate-900/20 font-black shadow-sm'
-                           : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-900/30 font-bold'
+                           ? 'text-sky-600 dark:text-cyan-400 bg-slate-100/30 dark:bg-slate-900/20 font-semibold shadow-sm'
+                           : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-900/30 font-medium'
                       }`}
                     >
                       <div className={`p-2 rounded-xl transition-all duration-300 ${
                         isActive 
-                          ? 'bg-sky-100 dark:bg-cyan-950/60 text-sky-600 dark:text-cyan-400 shadow-glow-cyan border border-cyan-500/20' 
-                          : 'bg-slate-200/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-transparent'
+                           ? 'bg-sky-100 dark:bg-cyan-950/60 text-sky-600 dark:text-cyan-400 shadow-glow-cyan border border-cyan-500/20' 
+                           : 'bg-slate-200/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-transparent'
                       }`}>
                         {link.icon}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="font-extrabold text-sm truncate">{link.name}</span>
-                        <span className={`text-[10px] mt-0.5 truncate ${isActive ? 'text-sky-500/90 dark:text-cyan-400/90 font-bold' : 'text-slate-500 dark:text-slate-400 font-semibold'}`}>{link.desc}</span>
+                        <span className="font-bold text-sm truncate">{link.name}</span>
+                        <span className={`text-[10px] mt-0.5 truncate ${isActive ? 'text-sky-500/90 dark:text-cyan-400/90 font-medium' : 'text-slate-500 dark:text-slate-400 font-normal'}`}>{link.desc}</span>
                       </div>
                       {isActive && (
                         <motion.span
@@ -307,7 +348,7 @@ export default function DashboardLayout() {
               <div className="flex-1 py-4 overflow-y-auto flex flex-col gap-5 custom-sidebar-scrollbar min-h-0">
                 {sidebarLinks.map((section, sIdx) => (
                   <div key={sIdx} className="flex flex-col gap-2.5 text-left">
-                    <span className="px-3.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="px-3.5 text-[9.5px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
                       {section.category}
                     </span>
                     <div className="flex flex-col gap-1.5">
@@ -320,8 +361,8 @@ export default function DashboardLayout() {
                             onClick={() => setSidebarOpen(false)}
                             className={`flex items-start gap-3 p-2.5 rounded-xl transition-all duration-300 relative ${
                               isActive
-                                ? 'text-sky-600 dark:text-cyan-400 bg-slate-100/40 dark:bg-slate-900/30 font-black shadow-sm'
-                                : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-900/30 font-bold'
+                                ? 'text-sky-600 dark:text-cyan-400 bg-slate-100/40 dark:bg-slate-900/30 font-semibold shadow-sm'
+                                : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-900/30 font-medium'
                             }`}
                           >
                             <div className={`p-1.5 rounded-lg transition-all duration-300 ${
@@ -332,8 +373,8 @@ export default function DashboardLayout() {
                               {link.icon}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="font-extrabold text-xs truncate">{link.name}</span>
-                              <span className={`text-[9.5px] mt-0.5 truncate ${isActive ? 'text-sky-500/90 dark:text-cyan-400/90 font-bold' : 'text-slate-500 dark:text-slate-400 font-semibold'}`}>{link.desc}</span>
+                              <span className="font-bold text-xs truncate">{link.name}</span>
+                              <span className={`text-[9.5px] mt-0.5 truncate ${isActive ? 'text-sky-500/90 dark:text-cyan-400/90 font-medium' : 'text-slate-500 dark:text-slate-400 font-normal'}`}>{link.desc}</span>
                             </div>
                           </Link>
                         );

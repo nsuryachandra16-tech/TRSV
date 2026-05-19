@@ -63,11 +63,25 @@ const CinematicCard = ({ lead, tier, accentColor = 'cyan' }) => {
 
       {/* Cinematic Portrait */}
       <div className="w-full h-[320px] sm:h-[380px] relative overflow-hidden bg-slate-100 dark:bg-slate-950">
-        <img
-          src={lead.profile_image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=512'}
-          alt={lead.full_name}
-          className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
-        />
+        {lead.profile_image ? (
+          <img
+            src={lead.profile_image}
+            alt={lead.full_name}
+            className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 flex flex-col items-center justify-center p-6 text-center select-none border-b border-slate-900/50">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+              <Users className="w-7 h-7 text-cyan-400" />
+            </div>
+            <span className="text-[10px] font-black text-cyan-400 tracking-[0.25em] uppercase mb-1">
+              TRSV Officer
+            </span>
+            <span className="text-xs font-bold text-slate-500 tracking-wider">
+              Revealing Soon
+            </span>
+          </div>
+        )}
         {/* Bottom gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent opacity-90 pointer-events-none" />
 
