@@ -55,11 +55,30 @@ router.get('/history/:channel_id', authenticateAdmin, async (req, res) => {
   const isGlobal = channel_id === 'GH-Global';
   const myConstituencyChannel = `GH-Constituency-${user.constituency_name}`;
   
-  const isAuthorized = 
+  let isAuthorized = 
     user.role === 'dev' || 
     user.role === 'supreme_admin' || 
     isGlobal || 
     channel_id === myConstituencyChannel;
+
+  if (!isAuthorized && channel_id.startsWith('GH-Constituency-')) {
+    const requestedConstituencyName = channel_id.replace('GH-Constituency-', '');
+    try {
+      const hierarchyCheck = await query(`
+        SELECT 1 
+        FROM constituencies child
+        JOIN constituencies parent ON child.parent_id = parent.id
+        WHERE LOWER(child.constituency_name) = LOWER($1)
+          AND LOWER(parent.constituency_name) = LOWER($2)
+      `, [requestedConstituencyName, user.constituency_name]);
+      
+      if (hierarchyCheck.rows.length > 0) {
+        isAuthorized = true;
+      }
+    } catch (err) {
+      console.error('🚨 [Chat Hierarchy Check Error]:', err.message);
+    }
+  }
 
   if (!isAuthorized) {
     return res.status(403).json({ 

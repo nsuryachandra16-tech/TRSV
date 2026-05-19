@@ -40,9 +40,10 @@ export default function HubChat({ user }) {
     }
   };
 
-  // 2. Fetch constituencies if user is Dev or Supreme Admin to enable channel override switcher
+  // 2. Fetch constituencies to enable channel switcher
   useEffect(() => {
-    if (isDevOrSupreme) {
+    const isLeadership = user.role !== 'student';
+    if (isDevOrSupreme || isLeadership) {
       fetch('/api/constituencies')
         .then(res => res.json())
         .then(data => {
@@ -54,7 +55,7 @@ export default function HubChat({ user }) {
       
       fetchActiveChannels();
     }
-  }, [isDevOrSupreme]);
+  }, [isDevOrSupreme, user.role]);
 
   // 3. Configure socket connection
   useEffect(() => {
@@ -202,10 +203,22 @@ export default function HubChat({ user }) {
     setNewMessage('');
   };
 
-  // Filter constituencies based on search bar input
-  const filteredConstituencies = constituencies.filter(c =>
-    c.constituency_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Find user's constituency ID from the list
+  const userConstituencyObj = constituencies.find(c => c.constituency_name === user.constituency_name);
+  const userConstituencyId = userConstituencyObj?.id;
+
+  // Filter constituencies based on search bar input and user authorization
+  const filteredConstituencies = constituencies.filter(c => {
+    // Dev/Supreme can see everything
+    if (isDevOrSupreme) {
+      return c.constituency_name.toLowerCase().includes(searchTerm.toLowerCase());
+    }
+    // Parent hub admins can see their sub-constituencies
+    if (userConstituencyId && c.parent_id === userConstituencyId) {
+      return c.constituency_name.toLowerCase().includes(searchTerm.toLowerCase());
+    }
+    return false;
+  });
 
   // Helper to format role names elegantly
   const formatRole = (role) => {
@@ -309,11 +322,11 @@ export default function HubChat({ user }) {
             </div>
           )}
 
-          {/* Dev or Supreme Admin: Full dropdown access switcher */}
-          {isDevOrSupreme && (
+          {/* Area Switcher (Dev/Supreme or Parent Hub leaders) */}
+          {(isDevOrSupreme || filteredConstituencies.length > 0) && (
             <div className="pt-2 flex flex-col border-t border-slate-800/60">
               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest px-1 block mb-2">
-                All Area Switcher
+                {isDevOrSupreme ? 'All Area Switcher' : 'Sub-Area Switcher'}
               </span>
               
               {/* Search bar */}
