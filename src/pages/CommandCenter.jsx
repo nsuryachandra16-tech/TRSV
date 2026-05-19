@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PremiumButton from '../components/PremiumButton';
+import GlassCard from '../components/GlassCard';
 import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
 import { TrendChart, CategoryPieChart } from '../components/RechartsWidgets';
 import EmergencyFallback from '../components/EmergencyFallback';

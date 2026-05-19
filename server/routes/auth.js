@@ -181,10 +181,10 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 /**
- * 1. Register a new user completely inside PostgreSQL using local JWT authority
+ * 1. Register a new user completely inside PostgreSQL
  */
 router.post('/signup', async (req, res) => {
-  const { fullName, email, password, phone, constituencyId, collegeId, collegeName, role, profileImage } = req.body;
+  const { fullName, email, password, phone, constituencyId, collegeId, collegeName, profileImage } = req.body;
 
   if (!fullName || !email || !password) {
     return res.status(400).json({ success: false, message: 'Missing core identity parameters.' });
@@ -193,20 +193,32 @@ router.post('/signup', async (req, res) => {
   const cleanEmail = email.trim().toLowerCase();
 
   try {
-    // Audit check if user email already exists
-    const checkEmail = await query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
-    if (checkEmail.rows.length > 0) {
-      return res.status(400).json({ success: false, message: 'An account with this email address already exists.' });
+    // 1. Audit check if user email is pre-registered in users database
+    const checkEmail = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    if (checkEmail.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Your email address is not pre-registered in our system. Please contact your union administrator for authorization.' 
+      });
     }
 
-    // 1. Resolve collegeId if collegeName is provided dynamically
-    let resolvedCollegeId = collegeId || null;
+    const existingUser = checkEmail.rows[0];
+    if (existingUser.password_hash) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'An account with this email address has already been registered. Please log in.' 
+      });
+    }
 
-    if (!resolvedCollegeId && collegeName && constituencyId) {
+    // 2. Resolve collegeId if collegeName is provided dynamically
+    let resolvedCollegeId = collegeId || existingUser.college_id;
+
+    if (!resolvedCollegeId && collegeName && (constituencyId || existingUser.constituency_id)) {
       const trimmedName = collegeName.trim();
+      const targetConId = constituencyId || existingUser.constituency_id;
       const colCheck = await query(
         'SELECT id FROM colleges WHERE LOWER(college_name) = LOWER($1) AND constituency_id = $2',
-        [trimmedName, parseInt(constituencyId)]
+        [trimmedName, parseInt(targetConId)]
       );
 
       if (colCheck.rows.length > 0) {
@@ -215,44 +227,42 @@ router.post('/signup', async (req, res) => {
         // Create new academic node on the fly!
         const newCol = await query(
           'INSERT INTO colleges (college_name, constituency_id) VALUES ($1, $2) RETURNING id',
-          [trimmedName, parseInt(constituencyId)]
+          [trimmedName, parseInt(targetConId)]
         );
         resolvedCollegeId = newCol.rows[0].id;
       }
     }
 
-    let userRole = role || 'student';
-    // Students cannot register as supreme_admin or other administrative roles directly on signup
-    if (userRole === 'supreme_admin' || userRole === 'president') {
-      userRole = 'student';
-    }
-
-    // Generate secure local unique ID and password hash
-    const userId = crypto.randomUUID();
     const passwordHash = hashPassword(password);
+    const finalFullName = fullName || existingUser.full_name;
+    const finalPhone = phone || existingUser.phone;
+    const finalConstituencyId = constituencyId || existingUser.constituency_id;
 
-    // Insert new user record into Neon Postgres
-    const insertResult = await query(
-      `INSERT INTO users (id, full_name, email, password_hash, role, constituency_id, college_id, phone, profile_image, verified) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [userId, fullName, cleanEmail, passwordHash, userRole, constituencyId || null, resolvedCollegeId, phone || null, profileImage || null, true]
+    // 3. Update pre-registered user record in Neon Postgres
+    const updateResult = await query(
+      `UPDATE users 
+       SET full_name = $1, password_hash = $2, constituency_id = $3, college_id = $4, phone = $5, profile_image = $6, verified = $7, updated_at = NOW() 
+       WHERE id = $8 RETURNING *`,
+      [finalFullName, passwordHash, finalConstituencyId || null, resolvedCollegeId || null, finalPhone || null, profileImage || existingUser.profile_image || null, true, existingUser.id]
     );
+
+    const registeredUser = updateResult.rows[0];
 
     // Generate local JWT token expiring in 30 days
     const token = jwt.sign(
-      { uid: userId, email: cleanEmail, role: userRole, name: fullName },
+      { uid: registeredUser.id, email: cleanEmail, role: registeredUser.role, name: registeredUser.full_name },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
 
     // Write audit log
     await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
-      userId,
-      'SIGNUP',
-      `Student profile created and authenticated locally via JWT`
+      registeredUser.id,
+      'REGISTRATION_COMPLETED',
+      `Pre-registered user account completed registration for email: ${cleanEmail} (Role: ${registeredUser.role})`
     ]);
 
-    res.status(201).json({ success: true, message: 'Identity registered and verified successfully.', token, user: insertResult.rows[0] });
+    res.status(201).json({ success: true, message: 'Identity registered and verified successfully.', token, user: registeredUser });
   } catch (error) {
     console.error('🚨 [Local Signup Error]:', error.message);
     res.status(500).json({ success: false, message: 'Database registration failed.', error: error.message });

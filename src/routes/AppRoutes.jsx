@@ -33,6 +33,7 @@ const Announcements = lazy(() => import('../pages/Announcements'));
 const Contact = lazy(() => import('../pages/Contact'));
 const Login = lazy(() => import('../pages/Login'));
 const Signup = lazy(() => import('../pages/Signup'));
+const MessengerPage = lazy(() => import('../pages/MessengerPage'));
 
 // Digital Identity Ecosystem Pages
 const DigitalIdCard = lazy(() => import('../pages/DigitalIdCard'));
@@ -129,6 +130,11 @@ export default function AppRoutes() {
           <Route path="team" element={<Team />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="contact" element={<Contact />} />
+          <Route path="messenger" element={
+            <ProtectedRoute allowedRoles={['secretary', 'general_secretary', 'vice_president', 'president', 'supreme_admin']}>
+              <MessengerPage />
+            </ProtectedRoute>
+          } />
         </Route>
 
           {/* Catch-all Fallback */}

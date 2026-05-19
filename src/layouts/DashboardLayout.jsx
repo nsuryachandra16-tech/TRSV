@@ -17,7 +17,8 @@ import {
   MapPin, 
   FileText,
   CreditCard,
-  QrCode
+  QrCode,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -93,7 +94,13 @@ export default function DashboardLayout() {
           path: `/dashboard/${activeRole}`,
           icon: currentOverview.icon,
           desc: currentOverview.desc
-        }
+        },
+        ...(userProfile?.role !== 'student' ? [{
+          name: 'Messenger',
+          path: '/dashboard/messenger',
+          icon: <MessageSquare className="w-5 h-5" />,
+          desc: 'Internal Secure Chat Hub'
+        }] : [])
       ]
     },
     {
