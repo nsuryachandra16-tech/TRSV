@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import xss from 'xss-clean';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 
 // Import config and routes
 import pool from './config/db.js';
@@ -23,13 +25,21 @@ import searchRouter from './routes/search.js';
 import telemetryRouter from './routes/telemetry.js';
 import automationRouter, { runAutoEscalationJob } from './routes/automation.js';
 import identityRouter from './routes/identity.js';
+import chatRouter from './routes/chat.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
 
-// Enable Cross-Origin Resource Sharing and JSON parsers
+// Enable JSON parsers
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // Mitigate payload attacks
 
@@ -54,6 +64,8 @@ app.use(helmet({
       ],
       connectSrc: [
         "'self'", 
+        "ws:",
+        "wss:",
         "https://*.tile.openstreetmap.org", 
         "https://tile.openstreetmap.org",
         "https://unpkg.com",
@@ -99,6 +111,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/telemetry', telemetryRouter);
 app.use('/api/automation', automationRouter);
 app.use('/api/identity', identityRouter);
+app.use('/api/chat', chatRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (req, res) => {
@@ -144,8 +157,70 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Configure Socket.io real-time event routing
+io.on('connection', (socket) => {
+  console.log(`🔌 [Socket.io] New telemetry node linked: ${socket.id}`);
+
+  // 1. Join Chat Room
+  socket.on('join_channel', (channel_id) => {
+    socket.join(channel_id);
+    console.log(`👥 [Socket.io] Socket ${socket.id} joined channel: ${channel_id}`);
+  });
+
+  // 2. Broadcast Message
+  socket.on('send_message', async (data) => {
+    const { channel_id, sender_id, message_text } = data;
+    try {
+      // Persist to Postgres
+      const result = await pool.query(
+        `INSERT INTO chat_messages (channel_id, sender_id, message_text)
+         VALUES ($1, $2, $3)
+         RETURNING id, created_at`,
+        [channel_id, sender_id, message_text]
+      );
+
+      // Fetch sender details to attach role & name badges
+      const userResult = await pool.query(
+        `SELECT full_name as sender_name, role as sender_role FROM users WHERE id = $1`,
+        [sender_id]
+      );
+
+      const senderName = userResult.rows[0]?.sender_name || 'Anonymous';
+      const senderRole = userResult.rows[0]?.sender_role || 'user';
+
+      const fullMessage = {
+        id: result.rows[0].id,
+        channel_id,
+        sender_id,
+        message_text,
+        created_at: result.rows[0].created_at,
+        sender_name: senderName,
+        sender_role: senderRole
+      };
+
+      // Broadcast to the channel room
+      io.to(channel_id).emit('new_message', fullMessage);
+    } catch (err) {
+      console.error('🚨 [Socket.io Message Save Error]:', err.message);
+    }
+  });
+
+  // 3. Typing Telemetry
+  socket.on('typing_start', (data) => {
+    socket.to(data.channel_id).emit('typing_start', data);
+  });
+
+  socket.on('typing_stop', (data) => {
+    socket.to(data.channel_id).emit('typing_stop', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`🔌 [Socket.io] Telemetry node unlinked: ${socket.id}`);
+  });
+});
+
 // Listen on designated port
-app.listen(PORT, async () => {
+httpServer.listen(PORT, async () => {
   console.log(`🚀 [Server] TSRV Phase 4 Governance backend live on http://localhost:${PORT}`);
   
   // Ensure that users table has reset_otp and reset_otp_expires_at columns to make forgot-password recovery survive server cold starts!
@@ -155,6 +230,23 @@ app.listen(PORT, async () => {
     ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP;
   `).then(async () => {
     console.log('🔹 [Database] Users password recovery schema synchronized successfully.');
+
+    // Initialize real-time chat messages schema
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id SERIAL PRIMARY KEY,
+          channel_id VARCHAR(100) NOT NULL,
+          sender_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+          message_text TEXT NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_id ON chat_messages(channel_id);
+      `);
+      console.log('🔹 [Database] Chat messages schema and indexes synchronized successfully.');
+    } catch (chatDbErr) {
+      console.error('🚨 [Database] Failed to build chat messages schema:', chatDbErr.message);
+    }
     
     // Seed Master Developer Suryachandra's Master Dev account
     try {

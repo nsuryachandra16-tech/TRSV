@@ -8,6 +8,7 @@ import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
 import { CategoryPieChart } from '../components/RechartsWidgets';
 import EmergencyFallback from '../components/EmergencyFallback';
 import GrievanceFilters from '../components/GrievanceFilters';
+import HubChat from '../components/HubChat';
 
 export default function LeaderDashboard() {
   const { userProfile } = useAuth();
@@ -321,6 +322,19 @@ export default function LeaderDashboard() {
         </div>
 
       </div>
+
+      {userProfile && (
+        <div className="w-full mt-2">
+          <HubChat 
+            user={{
+              id: userProfile.id,
+              role: userProfile.role,
+              full_name: userProfile.full_name,
+              constituency_name: userProfile.constituency_name || userProfile.constituency
+            }} 
+          />
+        </div>
+      )}
 
       {selectedTicketId && (
         <ComplaintDetailsModal 
