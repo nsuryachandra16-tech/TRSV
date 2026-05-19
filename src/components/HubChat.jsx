@@ -234,34 +234,38 @@ export default function HubChat({ user }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 h-[calc(100vh-230px)] min-h-[520px] max-h-[720px] shadow-2xl overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-slate-950/50 backdrop-blur-2xl border border-slate-800/60 rounded-3xl p-5 h-[calc(100vh-230px)] min-h-[520px] max-h-[720px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
       
       {/* SIDEBAR: Channels & Switcher */}
-      <div className="col-span-1 border-r border-slate-800/85 pr-4 flex flex-col h-full overflow-hidden">
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="w-5 h-5 text-cyan-400" />
-          <h3 className="font-bold text-slate-100 text-lg tracking-wide">Messenger</h3>
+      <div className="col-span-1 border-r border-slate-800/40 pr-5 flex flex-col h-full overflow-hidden">
+        <div className="flex items-center gap-2.5 mb-5 shrink-0">
+          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+            <MessageSquare className="w-5 h-5 text-cyan-400" />
+          </div>
+          <h3 className="font-black text-slate-100 text-lg tracking-wide uppercase">Messenger</h3>
         </div>
 
         {/* Channels List */}
-        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+        <div className="space-y-5 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-850 scrollbar-track-transparent">
           {/* Main Lounges */}
           <div className="space-y-2">
             {/* Global channel */}
             <button
               onClick={() => setCurrentChannel('GH-Global')}
-              className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+              className={`w-full text-left p-3.5 rounded-2xl flex items-center gap-3.5 transition-all duration-300 cursor-pointer border ${
                 currentChannel === 'GH-Global'
-                  ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-200'
-                  : 'bg-slate-850/40 border border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-cyan-500/15 to-blue-500/5 border-cyan-500/35 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.08)]'
+                  : 'bg-slate-900/25 border-slate-850/50 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 hover:border-slate-700/30'
               }`}
             >
-              <div className="p-2 rounded-lg bg-slate-800/80">
-                <Users className="w-4 h-4 text-cyan-400" />
+              <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                currentChannel === 'GH-Global' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800/80 text-slate-500'
+              }`}>
+                <Users className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-bold text-sm">Statewide Lounge</div>
-                <div className="text-[10px] text-slate-500">All State Admins</div>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="font-extrabold text-sm tracking-wide">Statewide Lounge</div>
+                <div className="text-[10px] text-slate-450 mt-0.5">All State Admins</div>
               </div>
             </button>
 
@@ -269,18 +273,20 @@ export default function HubChat({ user }) {
             {!isDevOrSupreme && user.constituency_name && (
               <button
                 onClick={() => setCurrentChannel(`GH-Constituency-${user.constituency_name}`)}
-                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+                className={`w-full text-left p-3.5 rounded-2xl flex items-center gap-3.5 transition-all duration-300 cursor-pointer border ${
                   currentChannel === `GH-Constituency-${user.constituency_name}`
-                    ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-200'
-                    : 'bg-slate-850/40 border border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-cyan-500/15 to-blue-500/5 border-cyan-500/35 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.08)]'
+                    : 'bg-slate-900/25 border-slate-850/50 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 hover:border-slate-700/30'
                 }`}
               >
-                <div className="p-2 rounded-lg bg-slate-800/80">
-                  <Shield className="w-4 h-4 text-emerald-400" />
+                <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                  currentChannel === `GH-Constituency-${user.constituency_name}` ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800/80 text-slate-500'
+                }`}>
+                  <Shield className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="font-bold text-sm">{user.constituency_name} Chat</div>
-                  <div className="text-[10px] text-slate-500">Local Area Group</div>
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="font-extrabold text-sm tracking-wide">{user.constituency_name} Chat</div>
+                  <div className="text-[10px] text-slate-450 mt-0.5">Local Area Group</div>
                 </div>
               </button>
             )}
@@ -288,11 +294,11 @@ export default function HubChat({ user }) {
 
           {/* Dev/Supreme Admin Active Groups list */}
           {isDevOrSupreme && activeChannels.filter(c => c.channel_id !== 'GH-Global').length > 0 && (
-            <div className="pt-2 flex flex-col border-t border-slate-800/60">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest px-1 block mb-2">
+            <div className="pt-3 flex flex-col border-t border-slate-800/50 gap-2">
+              <span className="text-[9px] font-black text-cyan-400/90 uppercase tracking-widest px-1 block">
                 Active Group Chats
               </span>
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-850">
                 {activeChannels.filter(c => c.channel_id !== 'GH-Global').map((ch, idx) => {
                   const isActive = currentChannel === ch.channel_id;
                   const constituencyName = ch.channel_id.replace('GH-Constituency-', '');
@@ -300,18 +306,18 @@ export default function HubChat({ user }) {
                     <button
                       key={ch.channel_id}
                       onClick={() => setCurrentChannel(ch.channel_id)}
-                      className={`w-full text-left p-2.5 rounded-xl border transition-all duration-200 ${
+                      className={`w-full text-left p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
                         isActive
-                          ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-200 font-bold'
-                          : 'bg-slate-850/30 border-transparent text-slate-450 hover:bg-slate-800/40 hover:text-slate-200'
+                          ? 'bg-cyan-500/10 border-cyan-500/35 text-cyan-200 font-extrabold shadow-[0_0_12px_rgba(6,182,212,0.05)]'
+                          : 'bg-slate-900/15 border-slate-850/40 text-slate-400 hover:bg-slate-800/30 hover:text-slate-200'
                       }`}
                     >
                       <div className="text-xs flex items-center justify-between">
-                        <span>Group {idx + 1}: {constituencyName}</span>
-                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
+                        <span className="truncate">Group {idx + 1}: {constituencyName}</span>
+                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0 ml-1.5" />}
                       </div>
                       {ch.participants && ch.participants.length > 0 && (
-                        <div className="text-[9px] text-slate-500 mt-1 truncate">
+                        <div className="text-[9px] text-slate-450 mt-1.5 truncate">
                           👥 {ch.participants.map(p => `${p.name} (${formatRole(p.role)})`).join(', ')}
                         </div>
                       )}
@@ -324,25 +330,25 @@ export default function HubChat({ user }) {
 
           {/* Area Switcher (Dev/Supreme or Parent Hub leaders) */}
           {(isDevOrSupreme || filteredConstituencies.length > 0) && (
-            <div className="pt-2 flex flex-col border-t border-slate-800/60">
-              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest px-1 block mb-2">
+            <div className="pt-3 flex flex-col border-t border-slate-800/50 gap-2.5">
+              <span className="text-[9px] font-black text-rose-400/90 uppercase tracking-widest px-1 block">
                 {isDevOrSupreme ? 'All Area Switcher' : 'Sub-Area Switcher'}
               </span>
               
               {/* Search bar */}
-              <div className="relative mb-3">
+              <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   placeholder="Search Area..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-950/80 border border-slate-850 text-xs rounded-lg py-2 pl-8 pr-3 text-slate-200 focus:outline-none focus:border-rose-500/50"
+                  className="w-full bg-slate-950/60 border border-slate-800/60 focus:border-rose-500/40 focus:ring-1 focus:ring-rose-500/10 text-xs rounded-xl py-2.5 pl-9 pr-3 text-slate-200 focus:outline-none placeholder-slate-650"
                 />
               </div>
 
               {/* Scrollable list */}
-              <div className="space-y-1 overflow-y-auto max-h-[160px] pr-1">
+              <div className="space-y-1.5 overflow-y-auto max-h-[160px] pr-1 scrollbar-thin scrollbar-thumb-slate-850">
                 {filteredConstituencies.map((c) => {
                   const channelKey = `GH-Constituency-${c.constituency_name}`;
                   const isActive = currentChannel === channelKey;
@@ -350,19 +356,19 @@ export default function HubChat({ user }) {
                     <button
                       key={c.id}
                       onClick={() => setCurrentChannel(channelKey)}
-                      className={`w-full text-left py-2 px-3 rounded-lg text-[11px] transition-all duration-200 flex items-center justify-between ${
+                      className={`w-full text-left py-2.5 px-3.5 rounded-xl text-[11px] font-semibold transition-all duration-300 flex items-center justify-between cursor-pointer border ${
                         isActive
-                          ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300 font-bold'
-                          : 'bg-slate-950/20 border border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-300'
+                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.08)]'
+                          : 'bg-slate-900/10 border-transparent text-slate-400 hover:bg-slate-800/30 hover:text-slate-200 hover:border-slate-700/20'
                       }`}
                     >
-                      <span>📍 {c.constituency_name}</span>
-                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />}
+                      <span className="truncate">📍 {c.constituency_name}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shrink-0 ml-1.5" />}
                     </button>
                   );
                 })}
                 {filteredConstituencies.length === 0 && (
-                  <div className="text-[11px] text-slate-600 text-center py-4">No area match.</div>
+                  <div className="text-[11px] text-slate-500 text-center py-4">No area match.</div>
                 )}
               </div>
             </div>
@@ -370,11 +376,16 @@ export default function HubChat({ user }) {
         </div>
 
         {/* Socket status */}
-        <div className="mt-4 pt-3 border-t border-slate-850 flex items-center justify-between text-xs">
-          <span className="text-slate-500">Live Server Status</span>
-          <span className="flex items-center gap-1.5 font-semibold">
-            <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
-            <span className={socketConnected ? 'text-emerald-400' : 'text-rose-400'}>
+        <div className="mt-4 pt-3.5 border-t border-slate-800/40 flex items-center justify-between text-xs shrink-0">
+          <span className="text-slate-400 font-medium">Live Server Status</span>
+          <span className="flex items-center gap-2 bg-slate-950/40 border border-slate-800/40 px-2.5 py-1 rounded-full">
+            <span className="relative flex h-2 w-2">
+              {socketConnected && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${socketConnected ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
+            </span>
+            <span className={`text-[10px] font-extrabold uppercase tracking-wide ${socketConnected ? 'text-emerald-400' : 'text-rose-400'}`}>
               {socketConnected ? 'Online' : 'Reconnecting'}
             </span>
           </span>
@@ -384,39 +395,39 @@ export default function HubChat({ user }) {
       {/* CHAT DISPLAY WINDOW */}
       <div className="col-span-1 lg:col-span-3 flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="pb-3 border-b border-slate-850 flex items-center justify-between">
+        <div className="pb-3.5 border-b border-slate-800/40 flex items-center justify-between shrink-0">
           <div>
-            <h4 className="font-bold text-slate-100 text-base">
+            <h4 className="font-extrabold text-slate-100 text-base tracking-wide flex items-center gap-2">
               {currentChannel === 'GH-Global' 
                 ? '🌐 Statewide Governance Lounge' 
                 : `📍 Group: ${currentChannel.replace('GH-Constituency-', '')}`
               }
             </h4>
-            <p className="text-xs text-slate-500">Secure real-time encrypted connection</p>
+            <p className="text-xs text-slate-400 mt-1 font-medium">Secure real-time encrypted coordination channel</p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-cyan-400 bg-cyan-950/20 border border-cyan-800/30 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-950/30 border border-cyan-850/40 px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.05)]">
             <Info className="w-3.5 h-3.5" />
             <span>Admins Only</span>
           </div>
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2">
+        <div className="flex-1 overflow-y-auto py-5 space-y-5 px-2 scrollbar-thin scrollbar-thumb-slate-850">
           {messages.map((msg) => {
             const isMe = msg.sender_id === user.id;
             const roleStyle = getRoleColors(msg.sender_role);
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col max-w-[75%] ${isMe ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                className={`flex flex-col max-w-[80%] sm:max-w-[70%] transition-all duration-300 ${isMe ? 'ml-auto items-end' : 'mr-auto items-start'}`}
               >
                 {/* Meta info header */}
-                <div className="flex items-center gap-2 mb-1 text-[11px]">
-                  <span className="font-bold text-slate-300">{msg.sender_name}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${roleStyle.text}`}>
+                <div className="flex items-center gap-2 mb-1.5 text-[10px]">
+                  <span className="font-bold text-slate-200">{msg.sender_name}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black border uppercase tracking-widest ${roleStyle.text}`}>
                     {formatRole(msg.sender_role)}
                   </span>
-                  <span className="text-slate-500">
+                  <span className="text-slate-450 font-medium">
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   
@@ -426,7 +437,7 @@ export default function HubChat({ user }) {
                         setEditingMessageId(msg.id);
                         setEditingText(msg.message_text);
                       }}
-                      className="text-slate-500 hover:text-cyan-400 ml-1 transition-colors duration-150 text-[10px]"
+                      className="text-slate-500 hover:text-cyan-400 ml-2 transition-colors duration-150 text-[10px] cursor-pointer flex items-center gap-1 font-semibold"
                       title="Edit message"
                     >
                       ✏️ Edit
@@ -436,25 +447,25 @@ export default function HubChat({ user }) {
 
                 {/* Message Bubble */}
                 <div
-                  className={`p-3 rounded-2xl text-sm leading-relaxed border transition-all duration-300 ${
+                  className={`p-3.5 rounded-2xl text-sm leading-relaxed border transition-all duration-300 ${
                     isMe
-                      ? 'bg-gradient-to-br from-cyan-600 to-cyan-700 text-white border-cyan-500 shadow-lg shadow-cyan-950/20 rounded-tr-none'
-                      : `bg-slate-850/60 text-slate-200 border-slate-700/50 rounded-tl-none ${roleStyle.glow}`
+                      ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-0 shadow-lg shadow-cyan-950/20 rounded-tr-none font-medium'
+                      : `bg-slate-900/40 text-slate-100 border border-slate-800/80 rounded-tl-none backdrop-blur-md ${roleStyle.glow}`
                   }`}
                 >
                   {editingMessageId === msg.id ? (
-                    <div className="flex flex-col gap-2 min-w-[200px] text-slate-900">
+                    <div className="flex flex-col gap-2 min-w-[220px] text-slate-900">
                       <textarea
                         value={editingText}
                         onChange={(e) => setEditingText(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20"
                         rows={2}
                       />
                       <div className="flex justify-end gap-2 text-[10px]">
                         <button 
                           type="button"
                           onClick={() => setEditingMessageId(null)}
-                          className="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-750"
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-750 font-bold transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -470,18 +481,18 @@ export default function HubChat({ user }) {
                             }
                             setEditingMessageId(null);
                           }}
-                          className="px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500"
+                          className="px-2.5 py-1 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500 font-bold shadow-md shadow-cyan-900/20 transition-all cursor-pointer"
                         >
                           Save
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div>
+                    <div className="relative group">
                       <span className="break-all whitespace-pre-wrap">{msg.message_text}</span>
                       {msg.is_edited && (
                         <span 
-                          className="text-[9px] text-cyan-400/90 ml-1.5 italic font-medium select-none bg-cyan-950/40 border border-cyan-800/40 px-1.5 py-0.5 rounded-full" 
+                          className="text-[8px] text-cyan-300 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.5 rounded-md ml-2 font-bold tracking-wider uppercase select-none align-middle" 
                           title="Message edited. Stored permanently for security audits."
                         >
                           edited
@@ -495,10 +506,12 @@ export default function HubChat({ user }) {
           })}
           
           {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-12">
-              <MessageSquare className="w-8 h-8 mb-2 text-slate-600" />
-              <div className="text-sm font-semibold">Start of Room Conversation</div>
-              <div className="text-xs text-slate-600 mt-1">Send a message to begin real-time operations</div>
+            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-16">
+              <div className="p-4 rounded-full bg-slate-900/30 border border-slate-800/40 mb-3 animate-pulse">
+                <MessageSquare className="w-8 h-8 text-slate-500" />
+              </div>
+              <div className="text-sm font-black uppercase tracking-wider text-slate-400">Start of Operations Room</div>
+              <div className="text-xs text-slate-650 mt-1.5 max-w-xs text-center leading-relaxed">Submit your dispatch or operational update below. All communications are logged securely.</div>
             </div>
           )}
 
@@ -506,7 +519,7 @@ export default function HubChat({ user }) {
         </div>
 
         {/* Typing indicator bar */}
-        <div className="h-5 text-xs text-slate-400 pl-2 italic flex items-center mb-1">
+        <div className="h-6 text-[10px] text-cyan-400/90 font-medium pl-2 italic flex items-center mb-1 shrink-0">
           <AnimatePresence>
             {Object.keys(typingUsers).length > 0 && (
               <motion.div
@@ -526,7 +539,7 @@ export default function HubChat({ user }) {
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+        <form onSubmit={handleSendMessage} className="p-1 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex gap-2 items-center shrink-0">
           <input
             type="text"
             value={newMessage}
@@ -535,12 +548,12 @@ export default function HubChat({ user }) {
               handleTyping();
             }}
             placeholder="Type operations update..."
-            className="flex-1 bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 text-sm placeholder-slate-600 shadow-inner"
+            className="flex-1 bg-transparent border-0 rounded-xl px-4 py-3 text-slate-200 focus:outline-none text-sm placeholder-slate-600 focus:ring-0"
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:opacity-40 text-white p-3.5 rounded-xl transition-all duration-300 shadow-lg shadow-cyan-900/35 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer"
+            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:opacity-30 disabled:pointer-events-none text-white p-3 rounded-xl transition-all duration-300 shadow-md shadow-cyan-950/40 hover:scale-102 active:scale-98 flex items-center justify-center cursor-pointer mr-1"
           >
             <Send className="w-4 h-4" />
           </button>
