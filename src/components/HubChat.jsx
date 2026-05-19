@@ -234,7 +234,7 @@ export default function HubChat({ user }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 min-h-[580px] max-h-[700px] shadow-2xl overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 h-[calc(100vh-230px)] min-h-[520px] max-h-[720px] shadow-2xl overflow-hidden">
       
       {/* SIDEBAR: Channels & Switcher */}
       <div className="col-span-1 border-r border-slate-800/85 pr-4 flex flex-col h-full overflow-hidden">
@@ -401,7 +401,7 @@ export default function HubChat({ user }) {
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2 max-h-[460px]">
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2">
           {messages.map((msg) => {
             const isMe = msg.sender_id === user.id;
             const roleStyle = getRoleColors(msg.sender_role);

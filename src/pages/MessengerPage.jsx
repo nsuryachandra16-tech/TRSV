@@ -16,12 +16,12 @@ export default function MessengerPage() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 animate-fadeIn text-left">
+    <div className="w-full flex flex-col gap-4 animate-fadeIn text-left">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-850 dark:text-white uppercase tracking-wider">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
           Messenger Node
         </h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold">
           Secure Statewide Admin Coordination Terminal
         </p>
       </div>
