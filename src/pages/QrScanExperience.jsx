@@ -83,32 +83,43 @@ export default function QrScanExperience() {
 
   // Frame processing loop
   const tick = () => {
-    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current || document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert'
-      });
+    if (!cameraActiveRef.current) return;
 
-      if (code) {
-        console.log("QR Code read successfully from camera:", code.data);
-        
-        // Extract the verify token if it's a URL
-        let tokenOrId = code.data;
-        if (code.data.includes('/verify/')) {
-          tokenOrId = code.data.split('/verify/')[1];
+    try {
+      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        const video = videoRef.current;
+        const videoW = video.videoWidth;
+        const videoH = video.videoHeight;
+
+        if (videoW > 0 && videoH > 0) {
+          const canvas = canvasRef.current || document.createElement('canvas');
+          canvas.width = videoW;
+          canvas.height = videoH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, videoW, videoH);
+          
+          const imageData = ctx.getImageData(0, 0, videoW, videoH);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth'
+          });
+
+          if (code) {
+            console.log("QR Code read successfully from camera:", code.data);
+            
+            // Extract the verify token if it's a URL
+            let tokenOrId = code.data;
+            if (code.data.includes('/verify/')) {
+              tokenOrId = code.data.split('/verify/')[1];
+            }
+            
+            executeVerifyQuery(tokenOrId);
+            stopCameraScanner();
+            return;
+          }
         }
-        
-        executeVerifyQuery(tokenOrId);
-        stopCameraScanner();
-        return;
       }
+    } catch (error) {
+      console.warn("Frame scan iteration error (handled):", error);
     }
     
     if (cameraActiveRef.current) {
@@ -177,7 +188,9 @@ export default function QrScanExperience() {
         
         try {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth'
+          });
           
           if (code) {
             console.log("QR Code read successfully from file:", code.data);
