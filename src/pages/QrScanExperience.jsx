@@ -16,6 +16,7 @@ export default function QrScanExperience() {
 
   // Real Camera scan states
   const [cameraActive, setCameraActive] = useState(false);
+  const cameraActiveRef = useRef(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -24,6 +25,7 @@ export default function QrScanExperience() {
 
   // Stop camera scanning stream
   const stopCameraScanner = () => {
+    cameraActiveRef.current = false;
     if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
       requestRef.current = null;
@@ -43,6 +45,7 @@ export default function QrScanExperience() {
     setScanError('');
     setScanResult(null);
     setCameraActive(true);
+    cameraActiveRef.current = true;
 
     try {
       const constraints = {
@@ -108,7 +111,7 @@ export default function QrScanExperience() {
       }
     }
     
-    if (cameraActive) {
+    if (cameraActiveRef.current) {
       requestRef.current = requestAnimationFrame(tick);
     }
   };
@@ -116,6 +119,7 @@ export default function QrScanExperience() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      cameraActiveRef.current = false;
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
