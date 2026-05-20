@@ -614,7 +614,7 @@ export default function DigitalIdCard() {
         <div className="lg:col-span-7 flex flex-col gap-6 print:col-span-12">
         
           {/* 1. Identity Verification Metrics */}
-          <div className={`grid gap-4 w-full ${userProfile?.role === 'supreme_admin' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
+          <div className={`grid gap-4 w-full ${userProfile?.role !== 'student' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
             <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
               <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Resolved Issues</span>
               <strong className="text-2xl font-black text-slate-800 dark:text-white">
@@ -627,7 +627,7 @@ export default function DigitalIdCard() {
                 {metrics?.issues_pending || 0}
               </strong>
             </GlassCard>
-            {userProfile?.role === 'supreme_admin' && (
+            {userProfile?.role !== 'student' && (
               <>
                 <GlassCard className="p-4 flex flex-col text-left gap-1" hoverEffect={false}>
                   <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Campaigns Run</span>

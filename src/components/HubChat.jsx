@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Send, Users, Shield, MessageSquare, Search, Info } from 'lucide-react';
+import { Send, Users, Shield, MessageSquare, Search, Info, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,6 +11,13 @@ export default function HubChat({ user }) {
   const [currentChannel, setCurrentChannel] = useState(() => {
     return localStorage.getItem('tsrv_active_chat_channel') || 'GH-Global';
   });
+  const [mobileView, setMobileView] = useState('channels'); // 'channels' or 'chat'
+  
+  const handleSelectChannel = (channelId) => {
+    setCurrentChannel(channelId);
+    setMobileView('chat');
+  };
+
   const [constituencies, setConstituencies] = useState([]);
   const [activeChannels, setActiveChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -246,7 +253,9 @@ export default function HubChat({ user }) {
   const formatRole = (role) => {
     if (role === 'dev') return 'Developer';
     return role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  }  // Helper to get role colors
+  };
+
+  // Helper to get role colors
   const getRoleColors = (role) => {
     if (role === 'dev') return { 
       text: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20', 
@@ -266,7 +275,9 @@ export default function HubChat({ user }) {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 h-[calc(100vh-230px)] min-h-[520px] max-h-[720px] shadow-premium-light dark:shadow-premium-dark overflow-hidden">
       
       {/* SIDEBAR: Channels & Switcher */}
-      <div className="col-span-1 border-r border-slate-200 dark:border-slate-800/60 pr-5 flex flex-col h-full overflow-hidden">
+      <div className={`col-span-1 border-r border-slate-200 dark:border-slate-800/60 lg:pr-5 flex flex-col h-full overflow-hidden ${
+        mobileView === 'channels' ? 'flex' : 'hidden lg:flex'
+      }`}>
         <div className="flex items-center gap-2.5 mb-5 shrink-0">
           <div className="p-2 rounded-xl bg-cyan-55/10 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 shadow-sm">
             <MessageSquare className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
@@ -280,7 +291,7 @@ export default function HubChat({ user }) {
           <div className="space-y-2">
             {/* Global channel */}
             <button
-              onClick={() => setCurrentChannel('GH-Global')}
+              onClick={() => handleSelectChannel('GH-Global')}
               className={`w-full text-left p-3.5 rounded-2xl flex items-center gap-3.5 transition-all duration-300 cursor-pointer border ${
                 currentChannel === 'GH-Global'
                   ? 'bg-sky-50 dark:bg-cyan-500/10 border-sky-200 dark:border-cyan-500/30 text-sky-900 dark:text-cyan-200 shadow-sm font-extrabold'
@@ -301,7 +312,7 @@ export default function HubChat({ user }) {
             {/* Regular Admin Constituency channel */}
             {!isDevOrSupreme && user.constituency_name && (
               <button
-                onClick={() => setCurrentChannel(`GH-Constituency-${user.constituency_name}`)}
+                onClick={() => handleSelectChannel(`GH-Constituency-${user.constituency_name}`)}
                 className={`w-full text-left p-3.5 rounded-2xl flex items-center gap-3.5 transition-all duration-300 cursor-pointer border ${
                   currentChannel === `GH-Constituency-${user.constituency_name}`
                     ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-250 shadow-sm font-extrabold'
@@ -334,11 +345,11 @@ export default function HubChat({ user }) {
                   return (
                     <button
                       key={ch.channel_id}
-                      onClick={() => setCurrentChannel(ch.channel_id)}
+                      onClick={() => handleSelectChannel(ch.channel_id)}
                       className={`w-full text-left p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
                         isActive
                           ? 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/30 text-cyan-800 dark:text-cyan-205 font-extrabold shadow-sm'
-                          : 'bg-slate-55/50 dark:bg-slate-950/20 border-slate-100 dark:border-slate-850/40 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200'
+                          : 'bg-slate-55/50 dark:bg-slate-950/20 border-slate-100 dark:border-slate-855/40 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       <div className="text-xs flex items-center justify-between">
@@ -360,7 +371,7 @@ export default function HubChat({ user }) {
           {/* Area Switcher (Dev/Supreme or Parent Hub leaders) */}
           {(isDevOrSupreme || filteredConstituencies.length > 0) && (
             <div className="pt-3 flex flex-col border-t border-slate-200 dark:border-slate-800/50 gap-2.5">
-              <span className="text-[9px] font-black text-rose-650 dark:text-rose-400/90 uppercase tracking-widest px-1 block">
+              <span className="text-[9px] font-black text-rose-655 dark:text-rose-400/90 uppercase tracking-widest px-1 block">
                 {isDevOrSupreme ? 'All Area Switcher' : 'Sub-Area Switcher'}
               </span>
               
@@ -384,10 +395,10 @@ export default function HubChat({ user }) {
                   return (
                     <button
                       key={c.id}
-                      onClick={() => setCurrentChannel(channelKey)}
+                      onClick={() => handleSelectChannel(channelKey)}
                       className={`w-full text-left py-2.5 px-3.5 rounded-xl text-[11px] font-semibold transition-all duration-300 flex items-center justify-between cursor-pointer border ${
                         isActive
-                          ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-300 shadow-sm'
+                          ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30 text-rose-850 dark:text-rose-300 shadow-sm'
                           : 'bg-slate-50 dark:bg-slate-900/10 border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-200 dark:hover:border-slate-705/20'
                       }`}
                     >
@@ -422,26 +433,30 @@ export default function HubChat({ user }) {
       </div>
 
       {/* CHAT DISPLAY WINDOW */}
-      <div className="col-span-1 lg:col-span-3 flex flex-col h-full overflow-hidden">
+      <div className={`col-span-1 lg:col-span-3 flex flex-col h-full overflow-hidden ${
+        mobileView === 'chat' ? 'flex' : 'hidden lg:flex'
+      }`}>
         {/* Header */}
         <div className="pb-3.5 border-b border-slate-200 dark:border-slate-800/40 flex items-center justify-between shrink-0">
-          <div>
-            <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-base tracking-wide flex items-center gap-2">
-              {currentChannel === 'GH-Global' 
-                ? '🌐 Statewide Governance Lounge' 
-                : `📍 Group: ${currentChannel.replace('GH-Constituency-', '')}`
-              }
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Secure real-time encrypted coordination channel</p>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-850/40 px-3 py-1.5 rounded-full shadow-sm">
-            <Info className="w-3.5 h-3.5" />
-            <span>Admins Only</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileView('channels')}
+              className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white mr-1 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="text-left">
+              <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-base tracking-wide flex items-center gap-2">
+                {currentChannel === 'GH-Global' 
+                  ? '🌐 Statewide Governance Lounge' 
+                  : `📍 Group: ${currentChannel.replace('GH-Constituency-', '')}`}
+              </h4>
+            </div>
           </div>
         </div>
 
-        {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto py-5 space-y-5 px-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           {messages.map((msg) => {
             const isMe = msg.sender_id === user.id;
             const roleStyle = getRoleColors(msg.sender_role);

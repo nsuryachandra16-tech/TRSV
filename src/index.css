@@ -64,26 +64,72 @@
 }
 
 /* Premium Card Borders and Hover Transitions */
-.glass-panel-light, .glass-card-border-light {
+.glass-panel-light {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02), 0 10px 24px rgba(0, 0, 0, 0.03);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
-
-.glass-panel-light:hover, .glass-card-border-light:hover {
+.glass-panel-light:hover {
   border-color: #cbd5e1;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
 }
 
-.glass-panel-dark, .glass-card-border-dark {
-  background: #0a0d16; /* Solid rich charcoal black */
+.glass-card-border-light {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02), 0 10px 24px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.glass-card-border-light:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark theme overrides for standard layout glass containers */
+html.dark .glass-panel-light,
+html.dark .glass-panel-dark {
+  background: #0a0d16; /* Solid rich charcoal black background */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0px rgba(255, 255, 255, 0.015);
+}
+html.dark .glass-panel-light:hover,
+html.dark .glass-panel-dark:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.55), 0 0 25px rgba(6, 182, 212, 0.05), inset 0 1px 0px rgba(255, 255, 255, 0.03);
+}
+
+html.dark .glass-card-border-light,
+html.dark .glass-card-border-dark {
+  background: #0a0d16; /* Solid rich charcoal black background */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0px rgba(255, 255, 255, 0.015);
+}
+html.dark .glass-card-border-light:hover,
+html.dark .glass-card-border-dark:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.55), 0 0 25px rgba(6, 182, 212, 0.05), inset 0 1px 0px rgba(255, 255, 255, 0.03);
+}
+
+/* Fallbacks for pure dark classes if requested raw */
+.glass-panel-dark {
+  background: #0a0d16;
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0px rgba(255, 255, 255, 0.015);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
+.glass-panel-dark:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.55), 0 0 25px rgba(6, 182, 212, 0.05), inset 0 1px 0px rgba(255, 255, 255, 0.03);
+}
 
-.glass-panel-dark:hover, .glass-card-border-dark:hover {
+.glass-card-border-dark {
+  background: #0a0d16;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0px rgba(255, 255, 255, 0.015);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.glass-card-border-dark:hover {
   border-color: rgba(6, 182, 212, 0.35);
   box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.55), 0 0 25px rgba(6, 182, 212, 0.05), inset 0 1px 0px rgba(255, 255, 255, 0.03);
 }
