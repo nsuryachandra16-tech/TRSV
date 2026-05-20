@@ -18,7 +18,7 @@ const authenticateAdmin = async (req, res, next) => {
 
     // Query user profile from database to get live role and constituency
     const userQuery = await query(
-      'SELECT id, role, full_name, email, (SELECT name FROM constituencies WHERE id = users.constituency_id) as constituency_name FROM users WHERE id = $1', 
+      'SELECT id, role, full_name, email, (SELECT constituency_name FROM constituencies WHERE id = users.constituency_id) as constituency_name FROM users WHERE id = $1', 
       [decoded.uid]
     );
 
