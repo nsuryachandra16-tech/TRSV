@@ -132,6 +132,8 @@ export default function HubChat({ user }) {
   // 4. Load historical messages on channel switch
   useEffect(() => {
     const token = localStorage.getItem('tsrv_session_token') || localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token || !user.id) return;
+
     fetch(`/api/chat/history/${currentChannel}`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -154,7 +156,7 @@ export default function HubChat({ user }) {
     if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('join_channel', currentChannel);
     }
-  }, [currentChannel]);
+  }, [currentChannel, user.id]);
 
   // 5. Scroll to bottom
   useEffect(() => {

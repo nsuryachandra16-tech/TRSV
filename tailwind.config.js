@@ -13,6 +13,11 @@ export default {
           DEFAULT: '#0284c7', // sky-600
           dark: '#0369a1', // sky-700
         },
+        slate: {
+          850: '#111827', // premium deep slate border
+          880: '#0b0f19', // premium darker slate
+          955: '#060814', // sleek obsidian slate background
+        },
         tsrv: {
           accent: {
             light: '#22d3ee', // cyan-400
@@ -21,23 +26,23 @@ export default {
           },
           bg: {
             light: '#f8fafc', // slate-50
-            dark: '#030712', // slate-950
+            dark: '#05070e', // premium obsidian black background
           },
           surface: {
             light: '#ffffff',
-            dark: '#0b1528', // dark navy surface
+            dark: '#0a0d16', // rich charcoal-black surface
           },
           card: {
             light: 'rgba(255, 255, 255, 0.75)',
-            dark: 'rgba(11, 21, 40, 0.65)',
+            dark: 'rgba(9, 11, 20, 0.7)', // sleek translucent card
           },
           border: {
             light: 'rgba(226, 232, 240, 0.8)', // slate-200
-            dark: 'rgba(30, 41, 59, 0.5)', // slate-800
+            dark: 'rgba(255, 255, 255, 0.05)', // fine translucent border
           },
           text: {
             light: '#0f172a',
-            dark: '#f8fafc',
+            dark: '#f1f5f9', // crisp off-white text
             mutedLight: '#64748b',
             mutedDark: '#94a3b8',
           }

@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 function DashboardIndex() {
   const { userProfile } = useAuth();
   if (!userProfile) return <Navigate to="/login" replace />;
-  if (userProfile.role === 'supreme_admin') {
+  if (userProfile.role === 'supreme_admin' || userProfile.role === 'dev') {
     return <Navigate to="/dashboard/command" replace />;
   } else if (userProfile.role === 'student') {
     return <Navigate to="/dashboard/student" replace />;

@@ -110,7 +110,7 @@ export default function DashboardLayout() {
   // Dynamically resolve and track the active role state based on PostgreSQL auth context
   const getActiveRole = () => {
     if (!userProfile) return 'student';
-    if (userProfile.role === 'supreme_admin') return 'command';
+    if (userProfile.role === 'supreme_admin' || userProfile.role === 'dev') return 'command';
     if (['secretary', 'general_secretary', 'vice_president', 'president'].includes(userProfile.role)) return 'leader';
     return 'student';
   };
@@ -407,7 +407,7 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       {/* Main Panel Frame Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative z-10 h-screen">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 h-screen">
         
         {/* Top bar dashboard control strips */}
         <header className="sticky top-0 z-30 w-full px-4 sm:px-6 py-4">

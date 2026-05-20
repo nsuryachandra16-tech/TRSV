@@ -364,8 +364,8 @@ export default function StudentDashboard() {
             Student Member Node
           </div>
           
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-1">
-            Welcome, {userProfile?.full_name || 'Student'} <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span> <span className="text-gradient-cyan block sm:inline">Student</span>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-1">
+            Welcome, {userProfile?.full_name || 'User'} <span className="text-slate-300 dark:text-slate-750 hidden sm:inline">|</span> <span className="text-gradient-cyan block sm:inline">{userProfile?.role === 'dev' ? 'Developer' : userProfile?.role === 'supreme_admin' ? 'Supreme Admin' : 'Student'}</span>
           </h2>
           
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xl leading-relaxed">
