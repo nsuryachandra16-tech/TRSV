@@ -59,6 +59,10 @@ export default function CommandCenter() {
   const [promoColId, setPromoColId] = useState('');
   const [allUsers, setAllUsers] = useState([]);
 
+  // Tab 4: Join requests state
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [fetchingRequests, setFetchingRequests] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [connectionDropped, setConnectionDropped] = useState(false);
@@ -172,6 +176,53 @@ export default function CommandCenter() {
       }
     } catch (err) {
       console.error('Failed to load command database metrics:', err);
+    }
+  };
+
+  const fetchJoinRequests = async () => {
+    setFetchingRequests(true);
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch('/api/join-trsv', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setJoinRequests(data.requests || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch join requests:', err);
+    } finally {
+      setFetchingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'applications') {
+      fetchJoinRequests();
+    }
+  }, [activeTab]);
+
+  const handleUpdateRequestStatus = async (id, status) => {
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch(`/api/join-trsv/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ text: `Application ${status === 'Approved' ? 'approved' : 'rejected'} successfully.`, type: 'success' });
+        fetchJoinRequests();
+      } else {
+        setMessage({ text: data.message || 'Failed to update application status.', type: 'error' });
+      }
+    } catch (err) {
+      setMessage({ text: 'Network failure updating application.', type: 'error' });
     }
   };
 
@@ -319,8 +370,8 @@ export default function CommandCenter() {
         </div>
 
         <div className="shrink-0 self-start lg:self-center">
-          <div className="flex gap-2">
-            {['telemetry', 'nodes', 'promotions'].map((tab) => (
+          <div className="flex flex-wrap gap-2">
+            {['telemetry', 'nodes', 'promotions', 'applications'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -333,7 +384,7 @@ export default function CommandCenter() {
                     : 'bg-slate-100/50 dark:bg-slate-900/60 border-slate-200/50 dark:border-slate-800 text-slate-500 hover:text-slate-850 dark:hover:text-white'
                 }`}
               >
-                {tab === 'nodes' ? 'Academic Grid' : tab}
+                {tab === 'nodes' ? 'Academic Grid' : tab === 'applications' ? 'Join Requests' : tab}
               </button>
             ))}
           </div>
@@ -648,6 +699,78 @@ export default function CommandCenter() {
 
             </form>
           </GlassCard>
+        </div>
+      )}
+
+      {activeTab === 'applications' && (
+        <div className="w-full flex flex-col gap-6 animate-scaleUp">
+          <div className="p-6 flex flex-col gap-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-premium-light dark:shadow-premium-dark">
+            <h3 className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <Users className="w-4 h-4 text-cyan-500" />
+              Join TSRV Requests
+            </h3>
+
+            {fetchingRequests ? (
+              <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-550 italic">
+                Loading applications network node...
+              </div>
+            ) : joinRequests.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {joinRequests.map((req) => (
+                  <div key={req.id} className="p-4 sm:p-5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-850 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
+                    <div className="flex flex-col gap-1.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-sm font-bold text-slate-800 dark:text-white">{req.full_name}</strong>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                          req.status === 'Approved'
+                            ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                            : req.status === 'Rejected'
+                            ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                      <p className="mt-0.5">Email: <span className="text-slate-700 dark:text-slate-350">{req.email}</span> | Phone: <span className="text-slate-700 dark:text-slate-350">{req.phone}</span></p>
+                      <p>College: <span className="text-slate-750 dark:text-slate-300 font-semibold">{req.college_name}</span> | Constituency: <span className="text-slate-750 dark:text-slate-300 font-semibold">{req.constituency_name || 'Not Registered'}</span></p>
+                      <div className="mt-1 bg-slate-100/50 dark:bg-slate-950/40 p-2.5 rounded-lg border border-slate-200/30 dark:border-slate-850 text-slate-600 dark:text-slate-400">
+                        <span className="font-extrabold text-[10px] text-slate-450 dark:text-slate-500 uppercase block mb-1">Statement of Motivation</span>
+                        {req.reason}
+                      </div>
+                      <span className="text-[9px] text-slate-400 mt-1 block">Applied: {new Date(req.created_at).toLocaleString()}</span>
+                    </div>
+
+                    {req.status === 'Pending' && (
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <PremiumButton
+                          variant="glow"
+                          size="sm"
+                          onClick={() => handleUpdateRequestStatus(req.id, 'Approved')}
+                          icon={<Check className="w-3.5 h-3.5" />}
+                          className="bg-green-600 border-green-600 text-white"
+                        >
+                          Approve
+                        </PremiumButton>
+                        <PremiumButton
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleUpdateRequestStatus(req.id, 'Rejected')}
+                          icon={<X className="w-3.5 h-3.5" />}
+                          className="border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                        >
+                          Reject
+                        </PremiumButton>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-xs italic">
+                No active join requests found.
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -13,7 +13,27 @@ export default function RootLayout() {
   const navigate = useNavigate();
   const { currentUser, userProfile, logout } = useAuth();
 
-  const navLinks = [];
+  const navLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Join TSRV', path: '/#join-trsv' }
+  ];
+
+  const handleNavClick = (e, path) => {
+    if (path.startsWith('/#')) {
+      e.preventDefault();
+      const id = path.substring(2);
+      if (location.pathname !== '/') {
+        navigate('/');
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col relative select-none">
@@ -44,11 +64,12 @@ export default function RootLayout() {
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+              const isActive = location.pathname === link.path && !link.path.includes('#');
               return (
                 <Link
                   key={link.path}
                   to={link.path}
+                  onClick={(e) => handleNavClick(e, link.path)}
                   className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 relative ${
                     isActive
                       ? 'text-sky-600 dark:text-cyan-400'
@@ -156,12 +177,15 @@ export default function RootLayout() {
           >
             <div className="flex flex-col gap-2">
               {navLinks.map((link) => {
-                const isActive = location.pathname === link.path;
+                const isActive = location.pathname === link.path && !link.path.includes('#');
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, link.path);
+                    }}
                     className={`px-4 py-2.5 rounded-xl text-base font-semibold transition-colors duration-200 ${
                       isActive
                         ? 'bg-sky-50 text-sky-600 dark:bg-cyan-950/40 dark:text-cyan-400'
@@ -289,7 +313,7 @@ export default function RootLayout() {
               <Link to="/login" className="text-slate-500 dark:text-slate-450 hover:text-cyan-500 dark:hover:text-cyan-400">Leadership</Link>
               <Link to="/login" className="text-slate-500 dark:text-slate-450 hover:text-cyan-500 dark:hover:text-cyan-400">Support Hub</Link>
               <Link to="/login" className="text-slate-500 dark:text-slate-450 hover:text-cyan-500 dark:hover:text-cyan-400">Notices</Link>
-              <Link to="/login" className="text-slate-500 dark:text-slate-450 hover:text-cyan-500 dark:hover:text-cyan-400">Join Union</Link>
+              <Link to="/#join-trsv" onClick={(e) => handleNavClick(e, '/#join-trsv')} className="text-slate-500 dark:text-slate-450 hover:text-cyan-500 dark:hover:text-cyan-400">Join Union</Link>
             </div>
           </div>
 

@@ -118,93 +118,93 @@ export default function DashboardLayout() {
   const activeRole = getActiveRole();
 
   const overviewConfig = {
-    student: { name: 'Grievance Portal', desc: 'My Safety & Grievance Board', icon: <Users className="w-5 h-5" /> },
-    leader: { name: 'Leader Dashboard', desc: 'Regional Constituency Grievances', icon: <UserCheck className="w-5 h-5" /> },
-    command: { name: 'State Command Console', desc: 'Supreme Governance Panel', icon: <Radio className="w-5 h-5" /> }
+    student: { name: 'Dashboard', desc: 'Main Student Panel', icon: <LayoutDashboard className="w-5 h-5" /> },
+    leader: { name: 'Dashboard', desc: 'Leader Control Panel', icon: <LayoutDashboard className="w-5 h-5" /> },
+    command: { name: 'Dashboard', desc: 'Admin Control Panel', icon: <LayoutDashboard className="w-5 h-5" /> }
   };
 
   const currentOverview = overviewConfig[activeRole] || overviewConfig.student;
 
   const sidebarLinks = [
     {
-      category: 'My Control Hub',
+      category: 'General',
       links: [
         {
           name: currentOverview.name,
           path: `/dashboard/${activeRole}`,
           icon: currentOverview.icon,
-          desc: currentOverview.desc
+          desc: 'Main user dashboard overview'
         },
         ...(userProfile?.role !== 'student' ? [{
           name: 'Messenger',
           path: '/dashboard/messenger',
           icon: <MessageSquare className="w-5 h-5" />,
-          desc: 'Internal Secure Chat Hub'
+          desc: 'Internal team chat rooms'
         }] : [])
       ]
     },
     {
-      category: 'Identity & Credentials',
+      category: 'ID Verification',
       links: [
         {
-          name: 'Digital ID Card',
+          name: 'Digital ID',
           path: '/dashboard/digital-id',
           icon: <CreditCard className="w-5 h-5" />,
-          desc: 'My Official Credentials'
+          desc: 'My digital identity card'
         },
         {
-          name: 'ID Verification Scanner',
+          name: 'QR Scanner',
           path: '/dashboard/qr-scanner',
           icon: <QrCode className="w-5 h-5" />,
-          desc: 'Scan & Authenticate IDs'
+          desc: 'Verify student ID cards'
         }
       ]
     },
     {
-      category: 'Support & Transparency',
+      category: 'Services',
       links: [
         {
-          name: '24/7 Helpline & Dispatch',
+          name: 'Support & Help',
           path: '/dashboard/support',
           icon: <ShieldAlert className="w-5 h-5" />,
-          desc: 'Emergency Incident Dispatch'
+          desc: 'Get assistance and help'
         },
         {
-          name: 'Regional Command Hubs',
+          name: 'Campus & Districts',
           path: '/dashboard/districts',
           icon: <MapPin className="w-5 h-5" />,
-          desc: 'Telangana Directory'
+          desc: 'List of colleges and districts'
         },
         {
-          name: 'Public Audit Ledger',
+          name: 'Public Ledger',
           path: '/dashboard/transparency',
           icon: <CheckCircle className="w-5 h-5" />,
-          desc: 'Verified Resolution Registry'
+          desc: 'Verifiable complaint list'
         },
         {
-          name: 'Organizational Hierarchy',
+          name: 'About TSRV',
           path: '/dashboard/about',
           icon: <Info className="w-5 h-5" />,
-          desc: 'Governance Framework & Tiers'
+          desc: 'About TSRV union'
         },
         {
-          name: 'Core Executive Board',
+          name: 'TSRV Team',
           path: '/dashboard/team',
           icon: <Users className="w-5 h-5" />,
-          desc: 'Advisors & Hyderabad Leaders'
+          desc: 'Union state leaders'
         },
         {
-          name: 'Official Updates',
+          name: 'Announcements',
           path: '/dashboard/announcements',
           icon: <Bell className="w-5 h-5" />,
-          desc: 'Statewide Circular Alerts'
+          desc: 'Latest union announcements'
         },
         // Only student roles can lodge standard complaints directly
         ...(userProfile?.role === 'student' ? [{
-          name: 'Report an Issue',
+          name: 'Complaint Register',
           path: '/dashboard/contact',
           icon: <FileText className="w-5 h-5" />,
-          desc: 'Submit Grievance Form'
+          desc: 'Register a new complaint'
         }] : [])
       ]
     }
@@ -500,18 +500,18 @@ export default function DashboardLayout() {
                             notifications.map((n) => (
                               <div
                                 key={n.id}
-                                onClick={() => handleToggleRead(n.id)}
+                                onClick={() => handleToggleRead(n.id, n.read)}
                                 className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-1.5 ${
                                   n.read
                                     ? 'bg-slate-50/40 dark:bg-slate-900/20 border-slate-200/30 dark:border-slate-850/50 opacity-60'
                                     : 'bg-cyan-500/5 dark:bg-cyan-950/20 border-cyan-500/25 dark:border-cyan-500/20 shadow-sm'
                                 }`}
                               >
-                                <p className={`text-xs leading-relaxed ${n.read ? 'text-slate-500 dark:text-slate-400 font-semibold' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>
+                                <p className={`text-xs leading-relaxed ${n.read ? 'text-slate-500 dark:text-slate-450' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>
                                   {n.message}
                                 </p>
                                 <span className="text-[9px] text-slate-400 dark:text-slate-550 font-bold self-end">
-                                  {n.time}
+                                  {formatTimeAgo(n.created_at)}
                                 </span>
                               </div>
                             ))

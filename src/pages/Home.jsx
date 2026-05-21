@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, ShieldAlert, Award, AlertOctagon, Eye, 
   MapPin, BookOpen, ArrowRight, MessageSquare, 
-  Users, CheckCircle2, HeartHandshake, Shield 
+  Users, CheckCircle2, HeartHandshake, Shield, UserPlus, Send
 } from 'lucide-react';
 
 // Custom Premium Components
@@ -16,6 +16,69 @@ import { useAuth } from '../context/AuthContext';
 export default function Home() {
   const navigate = useNavigate();
   const { currentUser, userProfile, logout } = useAuth();
+
+  const [constituencies, setConstituencies] = useState([]);
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    collegeName: '',
+    constituencyId: '',
+    reason: ''
+  });
+  const [submitStatus, setSubmitStatus] = useState({ type: '', msg: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchConstituencies = async () => {
+      try {
+        const res = await fetch('/api/constituencies');
+        const data = await res.json();
+        if (data.success) {
+          setConstituencies(data.constituencies);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchConstituencies();
+  }, []);
+
+  const handleInputChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitStatus({ type: '', msg: '' });
+
+    try {
+      const res = await fetch('/api/join-trsv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitStatus({ type: 'success', msg: data.message });
+        setForm({
+          fullName: '',
+          email: '',
+          phone: '',
+          collegeName: '',
+          constituencyId: '',
+          reason: ''
+        });
+      } else {
+        setSubmitStatus({ type: 'error', msg: data.message || 'Failed to submit application.' });
+      }
+    } catch (err) {
+      setSubmitStatus({ type: 'error', msg: 'Network error. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full flex flex-col gap-28 py-4 relative overflow-hidden select-none">
@@ -434,6 +497,150 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </GlassCard>
+        </AnimatedSection>
+      </section>
+
+      {/* JOIN TSRV SECTION */}
+      <section id="join-trsv" className="w-full flex flex-col gap-12 text-left">
+        <div className="max-w-3xl flex flex-col gap-4">
+          <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase">
+            Join the Union
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white tracking-normal">
+            Join TSRV Campaign Node
+          </h2>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+            Become a registered student representative or coordinator in your college campus and help build the safest student community.
+          </p>
+        </div>
+
+        <AnimatedSection direction="up" className="w-full max-w-4xl mx-auto">
+          <GlassCard className="p-6 sm:p-10 bg-white/40 dark:bg-slate-950/20 border border-slate-200/50 dark:border-slate-850 shadow-2xl rounded-3xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-cyan-500/5 to-transparent blur-2xl pointer-events-none" />
+            
+            <form onSubmit={handleFormSubmit} className="flex flex-col gap-6 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    required
+                    value={form.fullName}
+                    onChange={handleInputChange}
+                    placeholder="Enter your name"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={form.email}
+                    onChange={handleInputChange}
+                    placeholder="Enter your email"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={form.phone}
+                    onChange={handleInputChange}
+                    placeholder="Enter your mobile number"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Constituency
+                  </label>
+                  <select
+                    name="constituencyId"
+                    required
+                    value={form.constituencyId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-950 text-slate-500">Select Constituency</option>
+                    {constituencies.map((con) => (
+                      <option key={con.id} value={con.id} className="bg-white dark:bg-slate-950 text-slate-850 dark:text-slate-200">
+                        {con.constituency_name} ({con.district})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  College / Affiliated Campus Name
+                </label>
+                <input
+                  type="text"
+                  name="collegeName"
+                  required
+                  value={form.collegeName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your full college name"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Why do you want to join TSRV?
+                </label>
+                <textarea
+                  name="reason"
+                  required
+                  rows={4}
+                  value={form.reason}
+                  onChange={handleInputChange}
+                  placeholder="Describe your motivation to join..."
+                  className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm resize-none"
+                />
+              </div>
+
+              {submitStatus.msg && (
+                <div className={`p-4 rounded-xl border text-xs font-semibold ${
+                  submitStatus.type === 'success' 
+                    ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                    : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                }`}>
+                  {submitStatus.msg}
+                </div>
+              )}
+
+              <div className="flex justify-end mt-2">
+                <PremiumButton 
+                  variant="primary" 
+                  size="md" 
+                  type="submit"
+                  disabled={submitting}
+                  icon={submitting ? null : <Send className="w-4 h-4" />}
+                >
+                  {submitting ? 'Submitting Application...' : 'Submit Application'}
+                </PremiumButton>
+              </div>
+            </form>
           </GlassCard>
         </AnimatedSection>
       </section>
