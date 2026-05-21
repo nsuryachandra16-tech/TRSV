@@ -22,7 +22,6 @@ export default function Home() {
     fullName: '',
     email: '',
     phone: '',
-    collegeName: '',
     constituencyId: '',
     reason: ''
   });
@@ -75,7 +74,6 @@ export default function Home() {
           fullName: '',
           email: '',
           phone: '',
-          collegeName: '',
           constituencyId: '',
           reason: ''
         });
@@ -598,20 +596,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  College / Affiliated Campus Name
-                </label>
-                <input
-                  type="text"
-                  name="collegeName"
-                  required
-                  value={form.collegeName}
-                  onChange={handleInputChange}
-                  placeholder="Enter your full college name"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-slate-200 placeholder-slate-450 focus:border-cyan-500 focus:outline-none transition-colors duration-200 text-sm"
-                />
-              </div>
+              {/* Empty wrapper to maintain spacing since collegeName is removed */}
 
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
