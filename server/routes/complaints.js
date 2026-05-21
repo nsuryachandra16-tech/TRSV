@@ -177,13 +177,28 @@ router.post('/', requireRole(['student']), async (req, res) => {
     try {
       let leaderIds = new Set();
 
-      if (constituency_id) {
+      // Check if the complaint constituency is "Upcoming Area" (unlisted area)
+      let isUpcomingArea = false;
+      if (finalConstituencyId) {
+        const conCheck = await query('SELECT constituency_name, parent_id FROM constituencies WHERE id = $1', [finalConstituencyId]);
+        if (conCheck.rows.length > 0 && conCheck.rows[0].constituency_name === 'Upcoming Area') {
+          isUpcomingArea = true;
+        }
+      }
+
+      if (isUpcomingArea || !finalConstituencyId) {
+        // Upcoming Area / unlisted: notify ALL leaders across ALL constituencies
+        const allLeaders = await query(
+          `SELECT id FROM users WHERE role != 'student'`
+        );
+        allLeaders.rows.forEach(r => leaderIds.add(r.id));
+      } else {
         // 1. Find the parent hub of this constituency (e.g. Greater Hyderabad for Nampally)
-        const conRes = await query('SELECT id, parent_id FROM constituencies WHERE id = $1', [constituency_id]);
+        const conRes = await query('SELECT id, parent_id FROM constituencies WHERE id = $1', [finalConstituencyId]);
         const con = conRes.rows[0];
         
         // Collect the constituency itself + its parent hub (if any)
-        const scopeIds = [constituency_id];
+        const scopeIds = [finalConstituencyId];
         if (con?.parent_id) scopeIds.push(con.parent_id);
 
         // 2. Notify local + hub leaders
@@ -192,15 +207,16 @@ router.post('/', requireRole(['student']), async (req, res) => {
           [scopeIds]
         );
         localLeaders.rows.forEach(r => leaderIds.add(r.id));
+
+        // 3. Always notify statewide leaders too
+        const stateLeaders = await query(
+          "SELECT id FROM users WHERE constituency_id IS NULL AND role IN ('president', 'general_secretary', 'supreme_admin', 'dev')"
+        );
+        stateLeaders.rows.forEach(r => leaderIds.add(r.id));
       }
 
-      // 3. Always notify statewide leaders (Ramu Anna + Akka)
-      const stateLeaders = await query(
-        "SELECT id FROM users WHERE constituency_id IS NULL AND role IN ('president', 'general_secretary', 'supreme_admin')"
-      );
-      stateLeaders.rows.forEach(r => leaderIds.add(r.id));
-
       // 4. Bulk insert notifications (skip the reporter themselves)
+      const complaintTitle = title || `Grievance from ${complainant_name}`;
       for (const leaderId of leaderIds) {
         if (leaderId !== req.user.uid) {
           await query(
@@ -208,12 +224,12 @@ router.post('/', requireRole(['student']), async (req, res) => {
             [
               leaderId,
               '🆕 New Grievance Registered',
-              `Issue #${complaintId} filed in your area: "${title.substring(0, 60)}${title.length > 60 ? '...' : ''}"`
+              `Issue #${complaintId} filed${isUpcomingArea ? ' (Upcoming Area)' : ''}: "${complaintTitle.substring(0, 60)}${complaintTitle.length > 60 ? '...' : ''}"`
             ]
           );
         }
       }
-      console.log(`🔔 Notified ${leaderIds.size} leaders about complaint #${complaintId}`);
+      console.log(`🔔 Notified ${leaderIds.size} leaders about complaint #${complaintId}${isUpcomingArea ? ' [UPCOMING AREA - ALL LEADERS]' : ''}`);
     } catch (notifErr) {
       console.error('⚠️ [Leaders Notification Trigger Failed]:', notifErr.message);
     }
@@ -470,6 +486,44 @@ router.post('/:id/escalate', requireRole(['secretary', 'general_secretary', 'vic
     res.json({ success: true, message: 'Grievance escalated successfully.', complaint: updated.rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to escalate complaint.', error: error.message });
+  }
+});
+
+/**
+ * 7. Delete Complaint (Dev & Supreme Admin only — full cascade cleanup)
+ */
+router.delete('/:id', requireRole(['supreme_admin']), async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.uid;
+
+  try {
+    const check = await query('SELECT id, title, student_id FROM complaints WHERE id = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Grievance ticket not found.' });
+    }
+
+    const ticket = check.rows[0];
+
+    // Cascade delete: files, discussions, timeline, escalations, emergency_cases, then complaint
+    await query('DELETE FROM complaint_files WHERE complaint_id = $1', [id]);
+    await query('DELETE FROM complaint_discussions WHERE complaint_id = $1', [id]);
+    await query('DELETE FROM complaint_timeline WHERE complaint_id = $1', [id]);
+    await query('DELETE FROM complaint_escalations WHERE complaint_id = $1', [id]);
+    await query('DELETE FROM emergency_cases WHERE complaint_id = $1', [id]);
+    await query('DELETE FROM complaints WHERE id = $1', [id]);
+
+    // Log the deletion
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
+      uid,
+      'COMPLAINT_DELETED',
+      `Ticket #${id} ("${ticket.title}") permanently deleted by admin/dev`
+    ]);
+
+    console.log(`🗑️ [Admin] Complaint #${id} deleted by ${uid}`);
+    res.json({ success: true, message: `Grievance ticket #${id} has been permanently deleted.` });
+  } catch (error) {
+    console.error('🚨 [Complaint Delete Error]:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to delete complaint.', error: error.message });
   }
 });
 

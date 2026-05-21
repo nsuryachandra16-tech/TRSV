@@ -302,6 +302,32 @@ httpServer.listen(PORT, async () => {
     } catch (upcomingErr) {
       console.error('🚨 [Database] Failed to ensure Upcoming Area constituency:', upcomingErr.message);
     }
+
+    // Ensure complainant columns exist on complaints table (Phase 8 auto-sync)
+    try {
+      await pool.query(`
+        ALTER TABLE complaints
+        ADD COLUMN IF NOT EXISTS complainant_name VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS complainant_mobile VARCHAR(20),
+        ADD COLUMN IF NOT EXISTS college_school_address TEXT;
+      `);
+      console.log('🔹 [Database] Complaints grievance form columns synchronized successfully.');
+    } catch (colErr) {
+      console.error('🚨 [Database] Failed to sync complaint columns:', colErr.message);
+    }
+
+    // Ensure 'dev' role is allowed in users table CHECK constraint
+    try {
+      await pool.query(`
+        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+        ALTER TABLE users ADD CONSTRAINT users_role_check 
+          CHECK (role IN ('student', 'secretary', 'general_secretary', 'vice_president', 'president', 'supreme_admin', 'dev'));
+      `);
+      console.log('🔹 [Database] Users role constraint updated to include dev role.');
+    } catch (roleErr) {
+      // Constraint may already be correct — safe to ignore
+      console.warn('⚠️ [Database] Role constraint update skipped:', roleErr.message);
+    }
   }).catch((err) => {
     console.error('🚨 [Database] Failed to alter users schema for forgot-password:', err.message);
   });
