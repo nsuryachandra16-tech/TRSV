@@ -44,6 +44,15 @@ export default function Home() {
     fetchConstituencies();
   }, []);
 
+  useEffect(() => {
+    if (window.location.hash.includes('join-trsv')) {
+      setTimeout(() => {
+        const el = document.getElementById('join-trsv');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 400);
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };

@@ -135,6 +135,13 @@ export default function DashboardLayout() {
           icon: currentOverview.icon,
           desc: 'Main user dashboard overview'
         },
+        // Only student roles can lodge standard complaints directly
+        ...(userProfile?.role === 'student' ? [{
+          name: 'Complaint Register',
+          path: '/dashboard/contact',
+          icon: <FileText className="w-5 h-5" />,
+          desc: 'Register a new complaint'
+        }] : []),
         ...(userProfile?.role !== 'student' ? [{
           name: 'Messenger',
           path: '/dashboard/messenger',
@@ -198,14 +205,7 @@ export default function DashboardLayout() {
           path: '/dashboard/announcements',
           icon: <Bell className="w-5 h-5" />,
           desc: 'Latest union announcements'
-        },
-        // Only student roles can lodge standard complaints directly
-        ...(userProfile?.role === 'student' ? [{
-          name: 'Complaint Register',
-          path: '/dashboard/contact',
-          icon: <FileText className="w-5 h-5" />,
-          desc: 'Register a new complaint'
-        }] : [])
+        }
       ]
     }
   ];
