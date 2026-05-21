@@ -14,8 +14,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
     if (role === 'student') {
       // Calculate student specific stats
       const total = await query('SELECT COUNT(*) FROM complaints WHERE student_id = $1', [uid]);
-      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE student_id = $1 AND status = 'Resolved'", [uid]);
-      const pending = await query("SELECT COUNT(*) FROM complaints WHERE student_id = $1 AND status NOT IN ('Resolved', 'Dismissed')", [uid]);
+      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE student_id = $1 AND status IN ('Resolved', 'Solved')", [uid]);
+      const pending = await query("SELECT COUNT(*) FROM complaints WHERE student_id = $1 AND status NOT IN ('Resolved', 'Solved', 'Dismissed')", [uid]);
       const alerts = await query('SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read = false', [uid]);
 
       return res.json({
@@ -36,8 +36,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       }
 
       const total = await query('SELECT COUNT(*) FROM complaints WHERE college_id = $1', [college_id]);
-      const pending = await query("SELECT COUNT(*) FROM complaints WHERE college_id = $1 AND status NOT IN ('Resolved', 'Dismissed')", [college_id]);
-      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE college_id = $1 AND status = 'Resolved'", [college_id]);
+      const pending = await query("SELECT COUNT(*) FROM complaints WHERE college_id = $1 AND status NOT IN ('Resolved', 'Solved', 'Dismissed')", [college_id]);
+      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE college_id = $1 AND status IN ('Resolved', 'Solved')", [college_id]);
 
       const totalCount = parseInt(total.rows[0].count);
       const resolvedCount = parseInt(resolved.rows[0].count);
@@ -59,8 +59,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       if (isLocal) {
         // Calculate constituency level stats for local General Secretary
         const total = await query('SELECT COUNT(*) FROM complaints WHERE constituency_id = $1', [constituency_id]);
-        const pending = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status NOT IN ('Resolved', 'Dismissed')", [constituency_id]);
-        const resolved = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status = 'Resolved'", [constituency_id]);
+        const pending = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status NOT IN ('Resolved', 'Solved', 'Dismissed')", [constituency_id]);
+        const resolved = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status IN ('Resolved', 'Solved')", [constituency_id]);
         const colleges = await query('SELECT COUNT(*) FROM colleges WHERE constituency_id = $1', [constituency_id]);
 
         return res.json({
@@ -75,8 +75,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       } else {
         // Statewide General Secretary stats (e.g. Vijay Kumar) gets statewide telemetry numbers
         const total = await query('SELECT COUNT(*) FROM complaints');
-        const pending = await query("SELECT COUNT(*) FROM complaints WHERE status NOT IN ('Resolved', 'Dismissed')");
-        const resolved = await query("SELECT COUNT(*) FROM complaints WHERE status = 'Resolved'");
+        const pending = await query("SELECT COUNT(*) FROM complaints WHERE status NOT IN ('Resolved', 'Solved', 'Dismissed')");
+        const resolved = await query("SELECT COUNT(*) FROM complaints WHERE status IN ('Resolved', 'Solved')");
         const colleges = await query('SELECT COUNT(*) FROM colleges');
 
         return res.json({
@@ -99,8 +99,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       if (isLocal) {
         // Local Constituency leader dashboard stats
         total = await query('SELECT COUNT(*) FROM complaints WHERE constituency_id = $1', [constituency_id]);
-        pending = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status NOT IN ('Resolved', 'Dismissed')", [constituency_id]);
-        resolved = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status = 'Resolved'", [constituency_id]);
+        pending = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status NOT IN ('Resolved', 'Solved', 'Dismissed')", [constituency_id]);
+        resolved = await query("SELECT COUNT(*) FROM complaints WHERE constituency_id = $1 AND status IN ('Resolved', 'Solved')", [constituency_id]);
         constituencies = { rows: [{ count: 1 }] }; // Just their local one
         colleges = await query('SELECT COUNT(*) FROM colleges WHERE constituency_id = $1', [constituency_id]);
         categoryStats = await query(
@@ -110,8 +110,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       } else {
         // Statewide leader dashboard stats (constituency_id IS NULL)
         total = await query('SELECT COUNT(*) FROM complaints');
-        pending = await query("SELECT COUNT(*) FROM complaints WHERE status NOT IN ('Resolved', 'Dismissed')");
-        resolved = await query("SELECT COUNT(*) FROM complaints WHERE status = 'Resolved'");
+        pending = await query("SELECT COUNT(*) FROM complaints WHERE status NOT IN ('Resolved', 'Solved', 'Dismissed')");
+        resolved = await query("SELECT COUNT(*) FROM complaints WHERE status IN ('Resolved', 'Solved')");
         constituencies = await query('SELECT COUNT(*) FROM constituencies WHERE status = \'active\'');
         colleges = await query('SELECT COUNT(*) FROM colleges');
         categoryStats = await query(
@@ -139,8 +139,8 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
       const constituencies = await query('SELECT COUNT(*) FROM constituencies');
       const colleges = await query('SELECT COUNT(*) FROM colleges');
       const complaints = await query('SELECT COUNT(*) FROM complaints');
-      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE status = 'Resolved'");
-      const critical = await query("SELECT COUNT(*) FROM complaints WHERE urgency = 'critical' AND status != 'Resolved'");
+      const resolved = await query("SELECT COUNT(*) FROM complaints WHERE status IN ('Resolved', 'Solved')");
+      const critical = await query("SELECT COUNT(*) FROM complaints WHERE urgency = 'critical' AND status NOT IN ('Resolved', 'Solved')");
 
       // Fetch recent 8 system activity logs
       const logs = await query(

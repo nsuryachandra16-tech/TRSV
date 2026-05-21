@@ -88,9 +88,11 @@ export default function GrievanceFilters({ onFilterChange, constituencies = [], 
             className="w-full p-2.5 rounded-xl border bg-white/40 dark:bg-slate-900/40 text-xs focus:outline-none focus:border-cyan-400 border-slate-200/60 dark:border-slate-800 text-slate-800 dark:text-slate-100"
           >
             <option value="all">All Statuses</option>
-            <option value="Pending">Pending Audit</option>
-            <option value="Under Investigation">Under Investigation</option>
-            <option value="Resolved">Resolved</option>
+            <option value="Complaint Registered">Registered</option>
+            <option value="Complaint Verified">Verified</option>
+            <option value="Solving Started">Solving Started</option>
+            <option value="Solved">Solved</option>
+            <option value="Dismissed">Dismissed</option>
           </select>
         </div>
 

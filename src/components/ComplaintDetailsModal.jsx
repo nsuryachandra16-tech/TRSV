@@ -141,6 +141,70 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
     return maps[urgency?.toLowerCase()] || maps.medium;
   };
 
+  const renderProgressStepper = (status) => {
+    const stages = ['Complaint Registered', 'Complaint Verified', 'Solving Started', 'Solved'];
+    let currentIdx = 0;
+    if (status === 'Complaint Registered' || status === 'Audit Phase' || status === 'Registered') {
+      currentIdx = 0;
+    } else if (status === 'Complaint Verified' || status === 'Verified') {
+      currentIdx = 1;
+    } else if (status === 'Solving Started' || status === 'Processing' || status === 'In Progress') {
+      currentIdx = 2;
+    } else if (status === 'Solved' || status === 'Resolved') {
+      currentIdx = 3;
+    } else if (status === 'Dismissed') {
+      currentIdx = -1;
+    }
+
+    if (currentIdx === -1) {
+      return (
+        <div className="flex items-center gap-1.5 p-3 bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20 text-xs font-bold w-full">
+          <AlertTriangle className="w-4 h-4" /> This docket has been Dismissed / Rejected.
+        </div>
+      );
+    }
+
+    const labels = ['Registered', 'Verified', 'Solving Started', 'Solved'];
+
+    return (
+      <div className="w-full bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 mb-6 flex items-center justify-between gap-2">
+        {stages.map((stage, idx) => {
+          const isCompleted = currentIdx >= idx;
+          const isActive = currentIdx === idx;
+          return (
+            <React.Fragment key={idx}>
+              <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                  isActive 
+                    ? 'bg-cyan-500 text-white shadow-glow-cyan animate-pulse scale-110' 
+                    : isCompleted 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-slate-205 dark:bg-slate-850 text-slate-400 dark:text-slate-600'
+                }`}>
+                  {isCompleted ? '✓' : idx + 1}
+                </div>
+                <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center truncate w-full ${
+                  isActive 
+                    ? 'text-cyan-500' 
+                    : isCompleted 
+                      ? 'text-emerald-500' 
+                      : 'text-slate-400 dark:text-slate-500'
+                }`}>
+                  {labels[idx]}
+                </span>
+              </div>
+              {idx < stages.length - 1 && (
+                <div className={`h-0.5 flex-1 rounded transition-colors ${
+                  currentIdx > idx ? 'bg-emerald-500' : 'bg-slate-205 dark:bg-slate-850'
+                }`} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
@@ -201,6 +265,9 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
           {/* Left Column: Details & Timeline */}
           <div className="w-full lg:w-1/2 flex flex-col border-r border-slate-200/50 dark:border-slate-800 bg-white dark:bg-slate-900/50 overflow-y-auto custom-sidebar-scrollbar p-6 gap-8">
             
+            {/* Status Progress Stepper */}
+            {renderProgressStepper(complaint.status)}
+
             <section>
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-white mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-cyan-500" /> Incident Brief
@@ -339,7 +406,7 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
             </div>
 
             {/* Leader Override & Escalation Panel */}
-            {isLeader && complaint.status !== 'Resolved' && (
+            {isLeader && complaint.status !== 'Solved' && complaint.status !== 'Resolved' && (
               <div className="p-6 bg-slate-100 dark:bg-slate-850 shrink-0">
                 <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                   <Play className="w-3 h-3 text-cyan-500" /> Leadership Handler Actions
@@ -354,10 +421,10 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
                         onChange={(e) => setUpdateStatus(e.target.value)}
                         className="w-full p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:border-cyan-400 text-slate-800 dark:text-white"
                       >
-                        <option value="Audit Phase">Audit Phase</option>
-                        <option value="Under Investigation">Under Investigation</option>
-                        <option value="Action Imposed">Action Imposed</option>
-                        <option value="Resolved">Resolved</option>
+                        <option value="Complaint Registered">Complaint Registered</option>
+                        <option value="Complaint Verified">Complaint Verified</option>
+                        <option value="Solving Started">Solving Started</option>
+                        <option value="Solved">Solved</option>
                         <option value="Dismissed">Dismissed</option>
                       </select>
                     </div>

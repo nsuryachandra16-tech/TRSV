@@ -340,6 +340,8 @@ export default function StudentDashboard() {
     setSyncing(false);
   };
 
+  const [ticketTab, setTicketTab] = useState('active'); // 'active' | 'resolved'
+
   const getUrgencyBadge = (urgency) => {
     const maps = {
       critical: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
@@ -349,6 +351,74 @@ export default function StudentDashboard() {
     };
     return maps[urgency?.toLowerCase()] || maps.medium;
   };
+
+  const renderStatusStepper = (status) => {
+    const stages = ['Complaint Registered', 'Complaint Verified', 'Solving Started', 'Solved'];
+    let currentIdx = 0;
+    if (status === 'Complaint Registered' || status === 'Audit Phase' || status === 'Registered') {
+      currentIdx = 0;
+    } else if (status === 'Complaint Verified' || status === 'Verified') {
+      currentIdx = 1;
+    } else if (status === 'Solving Started' || status === 'Processing' || status === 'In Progress') {
+      currentIdx = 2;
+    } else if (status === 'Solved' || status === 'Resolved') {
+      currentIdx = 3;
+    } else if (status === 'Dismissed') {
+      currentIdx = -1;
+    }
+
+    if (currentIdx === -1) {
+      return (
+        <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-500 font-bold">
+          <AlertTriangle className="w-3.5 h-3.5" /> Dismissed / Rejected
+        </div>
+      );
+    }
+
+    const shortLabels = ['Registered', 'Verified', 'Solving Started', 'Solved'];
+
+    return (
+      <div className="flex items-center gap-2 mt-3 w-full bg-slate-50 dark:bg-slate-900/30 p-2.5 rounded-xl border border-slate-200/30 dark:border-slate-800">
+        {stages.map((stage, idx) => {
+          const isCompleted = currentIdx >= idx;
+          const isActive = currentIdx === idx;
+          return (
+            <React.Fragment key={idx}>
+              <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-black transition-all ${
+                  isActive 
+                    ? 'bg-cyan-500 text-white shadow-glow-cyan animate-pulse scale-110' 
+                    : isCompleted 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-450 dark:text-slate-600'
+                }`}>
+                  {isCompleted ? '✓' : idx + 1}
+                </div>
+                <span className={`text-[8px] font-extrabold tracking-tight truncate max-w-full uppercase ${
+                  isActive 
+                    ? 'text-cyan-500 font-black' 
+                    : isCompleted 
+                      ? 'text-emerald-500' 
+                      : 'text-slate-405 dark:text-slate-500'
+                }`}>
+                  {shortLabels[idx]}
+                </span>
+              </div>
+              {idx < stages.length - 1 && (
+                <div className={`h-0.5 flex-1 max-w-[20px] rounded transition-colors ${
+                  currentIdx > idx ? 'bg-emerald-500' : 'bg-slate-250 dark:bg-slate-800'
+                }`} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const activeTickets = tickets.filter(t => t.status !== 'Solved' && t.status !== 'Resolved' && t.status !== 'Dismissed');
+  const resolvedTickets = tickets.filter(t => t.status === 'Solved' || t.status === 'Resolved');
+  const currentTabTickets = ticketTab === 'active' ? activeTickets : resolvedTickets;
 
   return (
     <div className="w-full flex flex-col gap-6 text-left select-none animate-fadeIn">
@@ -430,13 +500,13 @@ export default function StudentDashboard() {
             </div>
             <div className="flex justify-between">
               <span>Constituency Node:</span>
-              <strong className="text-slate-800 dark:text-slate-200">
+              <strong className="text-slate-800 dark:text-slate-250">
                 {userProfile?.constituency_name || 'Telangana District'}
               </strong>
             </div>
             <div className="flex justify-between">
               <span>District:</span>
-              <strong className="text-slate-800 dark:text-slate-200">
+              <strong className="text-slate-800 dark:text-slate-255">
                 {userProfile?.district || 'State Capital'}
               </strong>
             </div>
@@ -446,9 +516,37 @@ export default function StudentDashboard() {
         {/* 3. Grievances Dispatch Tracker */}
         <div className="lg:col-span-2">
           <GlassCard hoverEffect={false} className="p-6 h-full flex flex-col justify-between gap-4 text-left">
-            <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-3">
-              <span className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider">Active Grievance Tickets</span>
-              <span className="text-xs text-slate-400">{tickets.length} Logged</span>
+            <div className="flex flex-col gap-2 border-b border-slate-200/50 dark:border-slate-850 pb-3">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider">Grievance Dispatch Tracker</span>
+                <span className="text-xs text-slate-400">{tickets.length} Logged</span>
+              </div>
+              
+              {/* Tab Selector */}
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setTicketTab('active')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    ticketTab === 'active'
+                      ? 'bg-cyan-500 text-white border-cyan-500 shadow-glow-cyan'
+                      : 'bg-white/40 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  Active Grievances ({activeTickets.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTicketTab('resolved')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    ticketTab === 'resolved'
+                      ? 'bg-cyan-500 text-white border-cyan-500 shadow-glow-cyan'
+                      : 'bg-white/40 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  Resolved Grievances ({resolvedTickets.length})
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -456,48 +554,50 @@ export default function StudentDashboard() {
                 <div className="w-8 h-8 rounded-full border-2 border-t-cyan-500 border-r-transparent border-slate-850 animate-spin" />
               </div>
             ) : (
-              <div className="flex-1 flex flex-col gap-3 my-2 overflow-y-auto max-h-[220px] pr-1 custom-sidebar-scrollbar">
-                {tickets.length > 0 ? (
-                  tickets.map((t) => (
+              <div className="flex-1 flex flex-col gap-3 my-2 overflow-y-auto max-h-[220px] pr-1 custom-sidebar-scrollbar min-h-[150px]">
+                {currentTabTickets.length > 0 ? (
+                  currentTabTickets.map((t) => (
                     <div 
                       key={t.id} 
                       onClick={() => setSelectedTicketId(t.id)}
-                      className="flex items-center justify-between p-3.5 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-850 cursor-pointer hover:border-cyan-500/50 transition-all group"
+                      className="flex flex-col p-4 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-850 cursor-pointer hover:border-cyan-500/50 transition-all group gap-2"
                     >
-                      <div className="flex flex-col text-left min-w-0 max-w-[70%]">
-                        <span className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5 truncate">
-                          <FileText className="w-4 h-4 text-cyan-500 shrink-0" />
-                          {t.title}
-                        </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1.5 flex-wrap">
-                          Ticket #{t.id} • {new Date(t.created_at).toLocaleDateString()}
-                          {t.attachment_url && (
-                            <a 
-                              href={t.attachment_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 text-[8px] font-black uppercase tracking-wider transition-colors border border-cyan-500/15"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Evidence Attached
-                            </a>
-                          )}
-                        </span>
+                      <div className="flex items-start justify-between min-w-0">
+                        <div className="flex flex-col text-left min-w-0 max-w-[70%]">
+                          <span className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5 truncate">
+                            <FileText className="w-4 h-4 text-cyan-500 shrink-0" />
+                            {t.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1.5 flex-wrap">
+                            Ticket #{t.id} • {new Date(t.created_at).toLocaleDateString()}
+                            {t.attachment_url && (
+                              <a 
+                                href={t.attachment_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 text-[8px] font-black uppercase tracking-wider transition-colors border border-cyan-500/15"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Evidence Attached
+                              </a>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase ${getUrgencyBadge(t.urgency)}`}>
+                            {t.urgency}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase ${getUrgencyBadge(t.urgency)}`}>
-                          {t.urgency}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
-                          {t.status}
-                        </span>
-                      </div>
+                      
+                      {/* Live Stepper */}
+                      {renderStatusStepper(t.status)}
                     </div>
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-slate-400 text-xs">
                     <AlertTriangle className="w-8 h-8 text-slate-400 mb-2 opacity-50" />
-                    No logged tickets found. Submit a case below to get immediate redressal.
+                    No tickets in this section. Submit a case to get immediate redressal.
                   </div>
                 )}
               </div>

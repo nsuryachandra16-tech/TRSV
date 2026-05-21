@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, Calendar, CheckCircle2, AlertTriangle, Star, Activity, User, Award, Phone } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
+import { useAuth } from '../context/AuthContext';
 
 export default function PublicVerification() {
   const { token_or_id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Scanner auth context
+  const { userProfile: currentUserProfile } = useAuth();
+  const isScannerLeader = currentUserProfile?.role && currentUserProfile.role !== 'student';
+
+  const [actionLoading, setActionLoading] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
 
   const runVerificationScan = async () => {
     setLoading(true);
@@ -26,6 +34,103 @@ export default function PublicVerification() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpdateComplaintStatus = async (complaintId, nextStatus) => {
+    setActionLoading(complaintId);
+    setActionMessage('');
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch(`/api/complaints/${complaintId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: nextStatus,
+          note: `Status set to ${nextStatus} via secure QR Scan identity verification.`,
+          current_handler: currentUserProfile?.id
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setActionMessage(`✓ Successfully shifted complaint #${complaintId} status to '${nextStatus}'!`);
+        // Refresh scanned student data to reflect state shift
+        runVerificationScan();
+      } else {
+        setActionMessage(`❌ Update failed: ${resData.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setActionMessage('❌ Communication failure with Neon node.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const renderStepper = (status) => {
+    const stages = ['Complaint Registered', 'Complaint Verified', 'Solving Started', 'Solved'];
+    let currentIdx = 0;
+    if (status === 'Complaint Registered' || status === 'Audit Phase' || status === 'Registered') {
+      currentIdx = 0;
+    } else if (status === 'Complaint Verified' || status === 'Verified') {
+      currentIdx = 1;
+    } else if (status === 'Solving Started' || status === 'Processing' || status === 'In Progress') {
+      currentIdx = 2;
+    } else if (status === 'Solved' || status === 'Resolved') {
+      currentIdx = 3;
+    } else if (status === 'Dismissed') {
+      currentIdx = -1;
+    }
+
+    if (currentIdx === -1) {
+      return (
+        <div className="flex items-center gap-1 mt-1 text-[9px] text-rose-500 font-bold">
+          <AlertTriangle className="w-3 h-3" /> Dismissed
+        </div>
+      );
+    }
+
+    const shortLabels = ['Registered', 'Verified', 'Solving Started', 'Solved'];
+
+    return (
+      <div className="flex items-center gap-1.5 mt-1 w-full bg-slate-50 dark:bg-slate-900/30 p-2 rounded-xl border border-slate-200/30 dark:border-slate-800">
+        {stages.map((stage, idx) => {
+          const isCompleted = currentIdx >= idx;
+          const isActive = currentIdx === idx;
+          return (
+            <React.Fragment key={idx}>
+              <div className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
+                <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-black transition-all ${
+                  isActive 
+                    ? 'bg-cyan-500 text-white shadow-glow-cyan animate-pulse scale-110' 
+                    : isCompleted 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-450 dark:text-slate-600'
+                }`}>
+                  {isCompleted ? '✓' : idx + 1}
+                </div>
+                <span className={`text-[7px] font-extrabold tracking-tight truncate max-w-full uppercase ${
+                  isActive 
+                    ? 'text-cyan-500 font-black' 
+                    : isCompleted 
+                      ? 'text-emerald-500' 
+                      : 'text-slate-405 dark:text-slate-500'
+                }`}>
+                  {shortLabels[idx]}
+                </span>
+              </div>
+              {idx < stages.length - 1 && (
+                <div className={`h-0.5 flex-1 max-w-[15px] rounded transition-colors ${
+                  currentIdx > idx ? 'bg-emerald-500' : 'bg-slate-250 dark:bg-slate-800'
+                }`} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -294,6 +399,73 @@ export default function PublicVerification() {
               )}
             </div>
           </GlassCard>
+
+          {profile.role === 'student' && data.complaints && (
+            <GlassCard className="p-6 flex flex-col gap-4 text-left relative mt-6" hoverEffect={false}>
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-3">
+                <h3 className="font-extrabold text-base text-slate-850 dark:text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                  Active Grievances & Life Cycle
+                </h3>
+                <span className="text-[8px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-widest font-mono">
+                  Live SaaS Pipeline
+                </span>
+              </div>
+
+              {actionMessage && (
+                <div className="p-3 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl animate-scaleUp">
+                  {actionMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-4 max-h-[350px] overflow-y-auto pr-1 custom-sidebar-scrollbar">
+                {data.complaints.length > 0 ? (
+                  data.complaints.map((c) => (
+                    <div key={c.id} className="p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-850/50 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-sm text-slate-800 dark:text-white">{c.title}</span>
+                          <span className="text-[10px] text-slate-405 mt-0.5">ID: #{c.id} • Category: {c.category}</span>
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-cyan-500/25 bg-cyan-500/10 text-cyan-500">
+                          {c.status}
+                        </span>
+                      </div>
+
+                      {/* Stepper progress */}
+                      {renderStepper(c.status)}
+
+                      {/* Leader Action buttons if scanned by regional leader */}
+                      {isScannerLeader && c.status !== 'Solved' && c.status !== 'Resolved' && (
+                        <div className="flex items-center gap-2.5 mt-2 border-t border-slate-200/40 dark:border-slate-800/80 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateComplaintStatus(c.id, 'Solving Started')}
+                            disabled={actionLoading === c.id}
+                            className="flex-1 py-2 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-black transition-all shadow-glow-cyan uppercase tracking-wider disabled:opacity-50"
+                          >
+                            {actionLoading === c.id ? 'Processing...' : 'Start Process'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateComplaintStatus(c.id, 'Solved')}
+                            disabled={actionLoading === c.id}
+                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black transition-all shadow-glow-emerald uppercase tracking-wider disabled:opacity-50"
+                          >
+                            {actionLoading === c.id ? 'Processing...' : 'Mark Solved'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-400 py-6 italic text-center">
+                    No registered grievances found for this student.
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+          )}
         </div>
 
       </div>

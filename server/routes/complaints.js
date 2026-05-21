@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/public/stats', async (req, res) => {
   try {
     const totalQuery = await query('SELECT COUNT(*)::int FROM complaints');
-    const resolvedQuery = await query("SELECT COUNT(*)::int FROM complaints WHERE status = 'Resolved'");
+    const resolvedQuery = await query("SELECT COUNT(*)::int FROM complaints WHERE status IN ('Resolved', 'Solved')");
     const conQuery = await query('SELECT COUNT(*)::int FROM constituencies');
     const colQuery = await query('SELECT COUNT(*)::int FROM colleges');
     
@@ -21,7 +21,7 @@ router.get('/public/stats', async (req, res) => {
     
     // Average resolve time in hours
     const speedQuery = await query(
-      "SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)))/3600 AS avg_hours FROM complaints WHERE status = 'Resolved'"
+      "SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)))/3600 AS avg_hours FROM complaints WHERE status IN ('Resolved', 'Solved')"
     );
     const avgHoursRaw = speedQuery.rows[0].avg_hours;
     const avgHours = avgHoursRaw ? parseFloat(avgHoursRaw).toFixed(1) : '0.0';
@@ -63,7 +63,7 @@ router.get('/public/logs', async (req, res) => {
       FROM complaints c
       LEFT JOIN constituencies con ON c.constituency_id = con.id
       LEFT JOIN colleges col ON c.college_id = col.id
-      WHERE c.status = 'Resolved'
+      WHERE c.status IN ('Resolved', 'Solved')
       ORDER BY c.updated_at DESC
       LIMIT 100
     `);
@@ -100,7 +100,7 @@ router.get('/public/logs', async (req, res) => {
  * 1. Submit a dynamic complaint ticket (Students only)
  */
 router.post('/', requireRole(['student']), async (req, res) => {
-  const { title, description, category, urgency, attachmentUrl, anonymous, emergency_flag, proofs, complainant_name, complainant_mobile, college_school_address } = req.body;
+  const { title, description, category, urgency, attachmentUrl, anonymous, emergency_flag, proofs, complainant_name, complainant_mobile, college_school_address, constituencyId } = req.body;
 
   if (!complainant_name || !complainant_mobile || !college_school_address || !description || !category) {
     return res.status(400).json({ success: false, message: 'Complainant name, mobile number, college/school address, category, and issue description are required.' });
@@ -109,8 +109,12 @@ router.post('/', requireRole(['student']), async (req, res) => {
   try {
     // Read the student location profiles from database to auto-stamp
     const studentUser = await query('SELECT constituency_id, college_id FROM users WHERE id = $1', [req.user.uid]);
-    const { constituency_id, college_id } = studentUser.rows[0];
+    const profileConstituencyId = studentUser.rows[0].constituency_id;
+    const profileCollegeId = studentUser.rows[0].college_id;
     
+    const finalConstituencyId = constituencyId ? parseInt(constituencyId) : profileConstituencyId;
+    const finalCollegeId = profileCollegeId;
+
     const isEmergency = urgency === 'critical' || emergency_flag === true;
 
     const result = await query(
@@ -121,10 +125,10 @@ router.post('/', requireRole(['student']), async (req, res) => {
         description,
         category,
         urgency || 'medium',
-        isEmergency ? 'Emergency Dispatched' : 'Audit Phase',
+        isEmergency ? 'Emergency Dispatched' : 'Complaint Registered',
         req.user.uid,
-        constituency_id,
-        college_id,
+        finalConstituencyId,
+        finalCollegeId,
         attachmentUrl || null,
         anonymous || false,
         isEmergency,
@@ -160,7 +164,7 @@ router.post('/', requireRole(['student']), async (req, res) => {
     await query(
       `INSERT INTO complaint_timeline (complaint_id, action_by, status, note) 
        VALUES ($1, $2, $3, $4)`,
-      [complaintId, req.user.uid, isEmergency ? 'Emergency Dispatched' : 'Audit Phase', 'Grievance successfully submitted to the statewide TRSV security grid.']
+      [complaintId, req.user.uid, isEmergency ? 'Emergency Dispatched' : 'Complaint Registered', 'Grievance successfully submitted to the statewide TRSV security grid.']
     );
 
     // Create a self-service notification

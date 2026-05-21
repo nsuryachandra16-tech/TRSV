@@ -14,7 +14,8 @@ import {
   Building, 
   Check, 
   X,
-  AlertTriangle
+  AlertTriangle,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PremiumButton from '../components/PremiumButton';
@@ -22,6 +23,8 @@ import GlassCard from '../components/GlassCard';
 import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
 import { TrendChart, CategoryPieChart } from '../components/RechartsWidgets';
 import EmergencyFallback from '../components/EmergencyFallback';
+import GrievanceFilters from '../components/GrievanceFilters';
+import ComplaintDetailsModal from '../components/ComplaintDetailsModal';
 
 export default function CommandCenter() {
   const { userProfile } = useAuth();
@@ -62,6 +65,76 @@ export default function CommandCenter() {
   // Tab 4: Join requests state
   const [joinRequests, setJoinRequests] = useState([]);
   const [fetchingRequests, setFetchingRequests] = useState(false);
+
+  // Tab 5: Grievance Operations queue states
+  const [allComplaints, setAllComplaints] = useState([]);
+  const [filteredComplaints, setFilteredComplaints] = useState([]);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [loadingComplaints, setLoadingComplaints] = useState(false);
+  const [complaintFilters, setComplaintFilters] = useState({
+    search: '',
+    category: 'all',
+    status: 'all',
+    urgency: 'all',
+    constituency: 'all'
+  });
+
+  const fetchAllComplaints = async () => {
+    setLoadingComplaints(true);
+    try {
+      const token = localStorage.getItem('tsrv_session_token');
+      const res = await fetch('/api/complaints', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAllComplaints(data.complaints || []);
+        setFilteredComplaints(data.complaints || []);
+      }
+    } catch (err) {
+      console.error('Failed to load all complaints:', err);
+    } finally {
+      setLoadingComplaints(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'grievances') {
+      fetchAllComplaints();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    let result = [...allComplaints];
+    
+    if (complaintFilters.search) {
+      const q = complaintFilters.search.toLowerCase();
+      result = result.filter(c => 
+        c.title?.toLowerCase().includes(q) || 
+        c.description?.toLowerCase().includes(q) ||
+        c.id?.toString().includes(q) ||
+        c.student_name?.toLowerCase().includes(q)
+      );
+    }
+
+    if (complaintFilters.category && complaintFilters.category !== 'all') {
+      result = result.filter(c => c.category === complaintFilters.category);
+    }
+
+    if (complaintFilters.status && complaintFilters.status !== 'all') {
+      result = result.filter(c => c.status === complaintFilters.status);
+    }
+
+    if (complaintFilters.urgency && complaintFilters.urgency !== 'all') {
+      result = result.filter(c => c.urgency?.toLowerCase() === complaintFilters.urgency?.toLowerCase());
+    }
+
+    if (complaintFilters.constituency && complaintFilters.constituency !== 'all') {
+      result = result.filter(c => c.constituency_id?.toString() === complaintFilters.constituency?.toString());
+    }
+
+    setFilteredComplaints(result);
+  }, [allComplaints, complaintFilters]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -371,7 +444,7 @@ export default function CommandCenter() {
 
         <div className="shrink-0 self-start lg:self-center">
           <div className="flex flex-wrap gap-2">
-            {['telemetry', 'nodes', 'promotions', 'applications'].map((tab) => (
+            {['telemetry', 'grievances', 'nodes', 'promotions', 'applications'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -384,7 +457,7 @@ export default function CommandCenter() {
                     : 'bg-slate-100/50 dark:bg-slate-900/60 border-slate-200/50 dark:border-slate-800 text-slate-500 hover:text-slate-850 dark:hover:text-white'
                 }`}
               >
-                {tab === 'nodes' ? 'Academic Grid' : tab === 'applications' ? 'Join Requests' : tab}
+                {tab === 'nodes' ? 'Academic Grid' : tab === 'applications' ? 'Join Requests' : tab === 'grievances' ? 'Grievance Operations' : tab}
               </button>
             ))}
           </div>
@@ -772,6 +845,97 @@ export default function CommandCenter() {
             )}
           </div>
         </div>
+      )}
+      {activeTab === 'grievances' && (
+        <div className="w-full flex flex-col gap-6 animate-scaleUp">
+          <GrievanceFilters 
+            onFilterChange={setComplaintFilters} 
+            constituencies={constituencies} 
+          />
+
+          <div className="p-6 flex flex-col gap-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-premium-light dark:shadow-premium-dark">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <span className="font-extrabold text-sm text-slate-700 dark:text-white uppercase tracking-wider">
+                Grievance Operations Queue ({filteredComplaints.length})
+              </span>
+              <span className="text-xs text-slate-400">Total {allComplaints.length} Lodged</span>
+            </div>
+
+            {loadingComplaints ? (
+              <div className="py-12 text-center text-xs text-slate-405 italic">
+                Synchronizing ticket logs...
+              </div>
+            ) : filteredComplaints.length > 0 ? (
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-xs text-left divide-y divide-slate-200/50 dark:divide-slate-800">
+                  <thead>
+                    <tr className="text-slate-450 uppercase font-black tracking-wider bg-slate-50 dark:bg-slate-850">
+                      <th className="px-4 py-3">Ticket ID</th>
+                      <th className="px-4 py-3">Student Name</th>
+                      <th className="px-4 py-3">Incident Title</th>
+                      <th className="px-4 py-3">Category</th>
+                      <th className="px-4 py-3">Constituency</th>
+                      <th className="px-4 py-3">Urgency</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-850/50">
+                    {filteredComplaints.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                        <td className="px-4 py-3.5 font-mono text-cyan-500 font-bold">#{c.id}</td>
+                        <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-white">{c.student_name}</td>
+                        <td className="px-4 py-3.5 max-w-[200px] truncate text-slate-650 dark:text-slate-300 font-medium" title={c.title}>{c.title}</td>
+                        <td className="px-4 py-3.5 font-semibold text-slate-700 dark:text-slate-350">{c.category}</td>
+                        <td className="px-4 py-3.5 text-slate-500">{c.constituency_name || 'State Scope'}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                            c.urgency?.toLowerCase() === 'critical'
+                              ? 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-glow-rose'
+                              : c.urgency?.toLowerCase() === 'high'
+                              ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                              : c.urgency?.toLowerCase() === 'medium'
+                              ? 'bg-sky-500/10 text-sky-500 border-sky-500/20'
+                              : 'bg-green-500/10 text-green-500 border-green-500/20'
+                          }`}>
+                            {c.urgency}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTicketId(c.id)}
+                            className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white font-black uppercase text-[10px] tracking-wider transition-all shadow-glow-cyan cursor-pointer"
+                          >
+                            Manage
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-xs italic">
+                No matching grievances found in this constituency query.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedTicketId && (
+        <ComplaintDetailsModal 
+          ticketId={selectedTicketId} 
+          onClose={() => setSelectedTicketId(null)} 
+          userProfile={userProfile} 
+          onUpdateSuccess={fetchAllComplaints} 
+        />
       )}
 
     </div>

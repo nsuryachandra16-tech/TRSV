@@ -174,8 +174,8 @@ router.get('/verify/:token_or_id', async (req, res) => {
 
     if (user.role === 'student') {
       const filedQuery = await query('SELECT COUNT(*) as total FROM complaints WHERE student_id = $1', [user.id]);
-      const resolvedQuery = await query("SELECT COUNT(*) as resolved FROM complaints WHERE student_id = $1 AND status = 'Resolved'", [user.id]);
-      const pendingQuery = await query("SELECT COUNT(*) as pending FROM complaints WHERE student_id = $1 AND status != 'Resolved'", [user.id]);
+      const resolvedQuery = await query("SELECT COUNT(*) as resolved FROM complaints WHERE student_id = $1 AND status IN ('Resolved', 'Solved')", [user.id]);
+      const pendingQuery = await query("SELECT COUNT(*) as pending FROM complaints WHERE student_id = $1 AND status NOT IN ('Resolved', 'Solved', 'Dismissed')", [user.id]);
       
       studentStats = {
         total_complaints: parseInt(filedQuery.rows[0].total || 0),
@@ -228,6 +228,19 @@ router.get('/verify/:token_or_id', async (req, res) => {
       result = 'inactive_failed';
     }
 
+    // Fetch student's complete active complaints list
+    let studentComplaints = [];
+    if (user.role === 'student') {
+      const activeComplaintsQuery = await query(
+        `SELECT id, title, description, category, urgency, status, created_at 
+         FROM complaints 
+         WHERE student_id = $1 
+         ORDER BY created_at DESC`, 
+        [user.id]
+      );
+      studentComplaints = activeComplaintsQuery.rows;
+    }
+
     // Write audit log of scan
     await query(`
       INSERT INTO qr_verification_logs (member_identity_id, scanned_by_uid, verification_result, device_info, ip_address)
@@ -244,7 +257,8 @@ router.get('/verify/:token_or_id', async (req, res) => {
         ...(metricsQuery.rows[0] || { issues_resolved: 0, issues_pending: 0, active_campaigns: 0, rating: 5.00 }),
         timeline
       },
-      studentStats
+      studentStats,
+      complaints: studentComplaints
     });
 
   } catch (error) {
