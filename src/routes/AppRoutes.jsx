@@ -46,6 +46,7 @@ const StudentDashboard = lazy(() => import('../pages/StudentDashboard'));
 const LeaderDashboard = lazy(() => import('../pages/LeaderDashboard'));
 const CommandCenter = lazy(() => import('../pages/CommandCenter'));
 const EmergencyCommand = lazy(() => import('../pages/EmergencyCommand'));
+const JoinTSRV = lazy(() => import('../pages/JoinTSRV'));
 
 // Futuristic Holographic Loading Spinner
 function PageLoader() {
@@ -130,6 +131,11 @@ export default function AppRoutes() {
           <Route path="team" element={<Team />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="contact" element={<Contact />} />
+          <Route path="join" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <JoinTSRV />
+            </ProtectedRoute>
+          } />
           <Route path="messenger" element={
             <ProtectedRoute allowedRoles={['secretary', 'general_secretary', 'vice_president', 'president', 'supreme_admin']}>
               <MessengerPage />

@@ -4,6 +4,7 @@ import {
   Shield, 
   ShieldAlert, 
   Users, 
+  UserPlus,
   Radio, 
   LayoutDashboard, 
   UserCheck, 
@@ -141,6 +142,13 @@ export default function DashboardLayout() {
           path: '/dashboard/contact',
           icon: <FileText className="w-5 h-5" />,
           desc: 'Register a new complaint'
+        }] : []),
+        // Only student roles can apply to join the union
+        ...(userProfile?.role === 'student' ? [{
+          name: 'Join TSRV',
+          path: '/dashboard/join',
+          icon: <UserPlus className="w-5 h-5" />,
+          desc: 'Apply to join TSRV'
         }] : []),
         ...(userProfile?.role !== 'student' ? [{
           name: 'Messenger',
