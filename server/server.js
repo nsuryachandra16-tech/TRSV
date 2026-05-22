@@ -202,11 +202,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 3. Edit Message Telemetry (No delete allowed)
+  // 3. Edit Message Telemetry
   socket.on('edit_message', async (data) => {
     const { id, channel_id, message_text } = data;
     try {
-      // Update message text and set is_edited flag in PostgreSQL
       const result = await pool.query(
         `UPDATE chat_messages 
          SET message_text = $1, is_edited = TRUE 
@@ -216,7 +215,6 @@ io.on('connection', (socket) => {
       );
 
       if (result.rows.length > 0) {
-        // Broadcast edited message to the entire room
         io.to(channel_id).emit('message_edited', result.rows[0]);
       }
     } catch (err) {
@@ -238,152 +236,135 @@ io.on('connection', (socket) => {
   });
 });
 
-// Listen on designated port
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVER START + STARTUP SCHEMA SYNC
+// Each migration step is independently try/catched — no single failure
+// blocks the remaining steps. Every multi-statement DDL is split into
+// separate pool.query() calls to avoid Neon/Supabase rejection of
+// semicolon-separated multi-statement strings.
+// ─────────────────────────────────────────────────────────────────────────────
 httpServer.listen(PORT, async () => {
   console.log(`🚀 [Server] TSRV Phase 4 Governance backend live on http://localhost:${PORT}`);
-  
-  // Ensure that users table has reset_otp and reset_otp_expires_at columns to make forgot-password recovery survive server cold starts!
-  pool.query(`
-    ALTER TABLE users 
-    ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(6),
-    ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP;
-  `).then(async () => {
-    console.log('🔹 [Database] Users password recovery schema synchronized successfully.');
 
-    // Initialize real-time chat messages schema
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS chat_messages (
-          id SERIAL PRIMARY KEY,
-          channel_id VARCHAR(100) NOT NULL,
-          sender_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
-          message_text TEXT NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE;
-        CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_id ON chat_messages(channel_id);
-      `);
-      console.log('🔹 [Database] Chat messages schema and indexes synchronized successfully.');
-    } catch (chatDbErr) {
-      console.error('🚨 [Database] Failed to build chat messages schema:', chatDbErr.message);
-    }
-    
-    // Seed Master Developer Suryachandra's Master Dev account
-    try {
-      const cryptoModule = await import('crypto');
-      const crypto = cryptoModule.default || cryptoModule;
-      
-      const devEmail = 'nimmagaddasurya4@gmail.com';
-      const devPass = 'surya_dev';
-      const salt = crypto.randomBytes(16).toString('hex');
-      const hash = crypto.pbkdf2Sync(devPass, salt, 1000, 64, 'sha512').toString('hex');
-      const devHash = `${salt}:${hash}`;
+  // STEP 1: Fix role CHECK constraint FIRST — must run before any role-dependent seeds
+  try {
+    await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`);
+    await pool.query(`
+      ALTER TABLE users ADD CONSTRAINT users_role_check 
+        CHECK (role IN ('student', 'secretary', 'general_secretary', 'vice_president', 'president', 'state_president', 'supreme_admin', 'dev'))
+    `);
+    console.log('🔹 [Database] Users role constraint updated (dev + state_president allowed).');
+  } catch (roleErr) {
+    console.warn('⚠️ [Database] Role constraint update skipped (likely already correct):', roleErr.message);
+  }
 
-      await pool.query(`
-        INSERT INTO users (id, full_name, email, password_hash, role, verified)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (email) DO UPDATE 
-        SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, verified = EXCLUDED.verified
-      `, ['MASTER_DEV_UID', 'Suryachandra (Developer)', devEmail, devHash, 'dev', true]);
-      
-      console.log('👑 [Database] Master Dev credentials synchronized and secured successfully.');
-    } catch (devErr) {
-      console.error('🚨 [Database] Failed to seed master dev credentials:', devErr.message);
-    }
+  // STEP 2: Password recovery columns
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(6)`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP`);
+    console.log('🔹 [Database] Users password recovery schema synchronized.');
+  } catch (err) {
+    console.error('🚨 [Database] Failed to sync password recovery columns:', err.message);
+  }
 
-    // Ensure "Upcoming Area" constituency exists
-    try {
-      await pool.query(`
-        INSERT INTO constituencies (constituency_name, district, status)
-        VALUES ('Upcoming Area', 'Statewide', 'active')
-        ON CONFLICT (constituency_name) DO NOTHING
-      `);
-      console.log('🔹 [Database] Upcoming Area constituency synchronized successfully.');
-    } catch (upcomingErr) {
-      console.error('🚨 [Database] Failed to ensure Upcoming Area constituency:', upcomingErr.message);
-    }
+  // STEP 3: Chat messages table (separate queries — no multi-statement)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id SERIAL PRIMARY KEY,
+        channel_id VARCHAR(100) NOT NULL,
+        sender_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        message_text TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    await pool.query(`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_id ON chat_messages(channel_id)`);
+    console.log('🔹 [Database] Chat messages schema synchronized.');
+  } catch (chatDbErr) {
+    console.error('🚨 [Database] Failed to sync chat messages schema:', chatDbErr.message);
+  }
 
-    // Ensure parent_id exists in constituencies table (Phase 7 hierarchical setup)
-    try {
-      await pool.query(`
-        ALTER TABLE constituencies 
-        ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES constituencies(id) ON DELETE CASCADE;
-      `);
-      
-      // Check if Greater Hyderabad already exists
-      let ghRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Greater Hyderabad'");
-      let ghId;
+  // STEP 4: Seed Master Developer account (role constraint must be fixed first — STEP 1)
+  try {
+    const cryptoModule = await import('crypto');
+    const crypto = cryptoModule.default || cryptoModule;
+    const devEmail = 'nimmagaddasurya4@gmail.com';
+    const devPass = 'surya_dev';
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(devPass, salt, 1000, 64, 'sha512').toString('hex');
+    const devHash = `${salt}:${hash}`;
+    await pool.query(`
+      INSERT INTO users (id, full_name, email, password_hash, role, verified)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (email) DO UPDATE 
+      SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, verified = EXCLUDED.verified
+    `, ['MASTER_DEV_UID', 'Suryachandra (Developer)', devEmail, devHash, 'dev', true]);
+    console.log('👑 [Database] Master Dev credentials synchronized.');
+  } catch (devErr) {
+    console.error('🚨 [Database] Failed to seed master dev credentials:', devErr.message);
+  }
 
-      if (ghRes.rows.length > 0) {
-        ghId = ghRes.rows[0].id;
-        // Check if Hyderabad (Parliament) exists, if so migrate its relations to Greater Hyderabad and delete it
-        const oldHydRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Hyderabad (Parliament)'");
-        if (oldHydRes.rows.length > 0) {
-          const oldId = oldHydRes.rows[0].id;
-          await pool.query("UPDATE users SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
-          await pool.query("UPDATE colleges SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
-          await pool.query("UPDATE complaints SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
-          await pool.query("DELETE FROM constituencies WHERE id = $1", [oldId]);
-        }
-      } else {
-        await pool.query(`
-          UPDATE constituencies 
-          SET constituency_name = 'Greater Hyderabad' 
-          WHERE constituency_name = 'Hyderabad (Parliament)';
-        `);
-        ghRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Greater Hyderabad'");
-        if (ghRes.rows.length > 0) {
-          ghId = ghRes.rows[0].id;
-        }
+  // STEP 5: Ensure "Upcoming Area" constituency exists
+  try {
+    await pool.query(`
+      INSERT INTO constituencies (constituency_name, district, status)
+      VALUES ('Upcoming Area', 'Statewide', 'active')
+      ON CONFLICT (constituency_name) DO NOTHING
+    `);
+    console.log('🔹 [Database] Upcoming Area constituency synchronized.');
+  } catch (upcomingErr) {
+    console.error('🚨 [Database] Failed to ensure Upcoming Area constituency:', upcomingErr.message);
+  }
+
+  // STEP 6: Parent-child constituency hierarchy setup
+  try {
+    await pool.query(`
+      ALTER TABLE constituencies 
+      ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES constituencies(id) ON DELETE CASCADE
+    `);
+    let ghRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Greater Hyderabad'");
+    let ghId;
+    if (ghRes.rows.length > 0) {
+      ghId = ghRes.rows[0].id;
+      const oldHydRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Hyderabad (Parliament)'");
+      if (oldHydRes.rows.length > 0) {
+        const oldId = oldHydRes.rows[0].id;
+        await pool.query("UPDATE users SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
+        await pool.query("UPDATE colleges SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
+        await pool.query("UPDATE complaints SET constituency_id = $1 WHERE constituency_id = $2", [ghId, oldId]);
+        await pool.query("DELETE FROM constituencies WHERE id = $1", [oldId]);
       }
-
-      if (ghId) {
-        // Map existing Hyderabad district constituencies (excluding Greater Hyderabad) as sub-constituencies
-        await pool.query(`
-          UPDATE constituencies 
-          SET parent_id = $1 
-          WHERE district = 'Hyderabad' AND id != $1 AND parent_id IS NULL;
-        `, [ghId]);
-      }
-      console.log('🔹 [Database] Constituencies parent-child hierarchy synchronized successfully.');
-    } catch (conErr) {
-      console.error('🚨 [Database] Failed to sync constituencies hierarchy:', conErr.message);
+    } else {
+      await pool.query(`UPDATE constituencies SET constituency_name = 'Greater Hyderabad' WHERE constituency_name = 'Hyderabad (Parliament)'`);
+      ghRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Greater Hyderabad'");
+      if (ghRes.rows.length > 0) ghId = ghRes.rows[0].id;
     }
-
-    // Ensure complainant columns exist on complaints table (Phase 8 auto-sync)
-    try {
+    if (ghId) {
       await pool.query(`
-        ALTER TABLE complaints
-        ADD COLUMN IF NOT EXISTS complainant_name VARCHAR(255),
-        ADD COLUMN IF NOT EXISTS complainant_mobile VARCHAR(20),
-        ADD COLUMN IF NOT EXISTS college_school_address TEXT;
-      `);
-      console.log('🔹 [Database] Complaints grievance form columns synchronized successfully.');
-    } catch (colErr) {
-      console.error('🚨 [Database] Failed to sync complaint columns:', colErr.message);
+        UPDATE constituencies SET parent_id = $1 
+        WHERE district = 'Hyderabad' AND id != $1 AND parent_id IS NULL
+      `, [ghId]);
     }
+    console.log('🔹 [Database] Constituency hierarchy synchronized.');
+  } catch (conErr) {
+    console.error('🚨 [Database] Failed to sync constituency hierarchy:', conErr.message);
+  }
 
-    // Ensure 'dev' and 'state_president' roles are allowed in users table CHECK constraint
-    try {
-      await pool.query(`
-        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-        ALTER TABLE users ADD CONSTRAINT users_role_check 
-          CHECK (role IN ('student', 'secretary', 'general_secretary', 'vice_president', 'president', 'state_president', 'supreme_admin', 'dev'));
-      `);
-      console.log('🔹 [Database] Users role constraint updated to include dev and state_president roles.');
-    } catch (roleErr) {
-      // Constraint may already be correct — safe to ignore
-      console.warn('⚠️ [Database] Role constraint update skipped:', roleErr.message);
-    }
-  }).catch((err) => {
-    console.error('🚨 [Database] Failed to alter users schema for forgot-password:', err.message);
-  });
+  // STEP 7: Grievance form columns on complaints (each column separate to avoid multi-statement rejection)
+  try {
+    await pool.query(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS complainant_name VARCHAR(255)`);
+    await pool.query(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS complainant_mobile VARCHAR(20)`);
+    await pool.query(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS college_school_address TEXT`);
+    console.log('🔹 [Database] Complaints grievance form columns synchronized.');
+  } catch (colErr) {
+    console.error('🚨 [Database] Failed to sync complaint columns:', colErr.message);
+  }
 
-  // Launch the background automation scheduler (runs auto-escalation check every 4 hours)
+  // Background auto-escalation scheduler
   setTimeout(() => {
     runAutoEscalationJob().catch(err => console.error('Initial cron job error:', err.message));
-  }, 10000); // Trigger first check 10 seconds after server start
-  
+  }, 10000);
   setInterval(() => {
     runAutoEscalationJob().catch(err => console.error('Cron job error:', err.message));
   }, 4 * 60 * 60 * 1000);
