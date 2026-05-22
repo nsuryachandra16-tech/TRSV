@@ -392,7 +392,7 @@ export default function StudentDashboard() {
       );
     }
 
-    const shortLabels = ['Registered', 'Verified', 'Solving Started', 'Solved'];
+    const shortLabels = ['Registered', 'Verified', 'Started', 'Solved'];
 
     return (
       <div className="flex items-center gap-2 mt-3 w-full bg-slate-50 dark:bg-slate-900/30 p-2.5 rounded-xl border border-slate-200/30 dark:border-slate-800">

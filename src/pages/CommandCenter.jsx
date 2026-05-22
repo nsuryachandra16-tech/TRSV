@@ -24,7 +24,7 @@ import GlassCard from '../components/GlassCard';
 import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
 import { TrendChart, CategoryPieChart } from '../components/RechartsWidgets';
 import EmergencyFallback from '../components/EmergencyFallback';
-import GrievanceFilters from '../components/GrievanceFilters';
+import ComplaintFilters from '../components/ComplaintFilters';
 import ComplaintDetailsModal from '../components/ComplaintDetailsModal';
 
 export default function CommandCenter() {
@@ -858,7 +858,7 @@ export default function CommandCenter() {
       )}
       {activeTab === 'complaints' && (
         <div className="w-full flex flex-col gap-6 animate-scaleUp">
-          <GrievanceFilters 
+          <ComplaintFilters 
             onFilterChange={setComplaintFilters} 
             constituencies={constituencies} 
           />

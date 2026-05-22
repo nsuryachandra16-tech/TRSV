@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Search, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
-export default function GrievanceFilters({ onFilterChange, constituencies = [], colleges = [] }) {
+export default function ComplaintFilters({ onFilterChange, constituencies = [], colleges = [] }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState('all');

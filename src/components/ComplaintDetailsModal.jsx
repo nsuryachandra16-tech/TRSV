@@ -226,22 +226,39 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
       );
     }
 
-    const labels = ['Registered', 'Verified', 'Solving Started', 'Solved'];
+    const labels = ['Registered', 'Verified', 'Started', 'Solved'];
 
     return (
       <div className="w-full bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 mb-6 flex items-center justify-between gap-2">
         {stages.map((stage, idx) => {
           const isCompleted = currentIdx >= idx;
           const isActive = currentIdx === idx;
+          const isClickableSolve = isLeader && idx === 2 && (status === 'Complaint Verified' || status === 'Verified');
+          
           return (
             <React.Fragment key={idx}>
-              <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+              <div 
+                className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 ${isClickableSolve ? 'cursor-pointer group/step' : ''}`}
+                onClick={() => {
+                  if (isClickableSolve) {
+                    localStorage.setItem('tsrv_solve_ticket_id', ticketId);
+                    localStorage.setItem('tsrv_solve_source_path', window.location.hash.split('?')[0]);
+                    localStorage.setItem('tsrv_solve_note', 'Solving started after student ID verification.');
+                    localStorage.setItem('tsrv_solve_resolution', '');
+                    onClose();
+                    navigate(`/dashboard/qr-scanner?solve_ticket_id=${ticketId}`);
+                  }
+                }}
+                title={isClickableSolve ? 'Click to scan student ID and start solving' : undefined}
+              >
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                   isActive 
                     ? 'bg-cyan-500 text-white shadow-glow-cyan animate-pulse scale-110' 
                     : isCompleted 
                       ? 'bg-emerald-500 text-white' 
-                      : 'bg-slate-205 dark:bg-slate-850 text-slate-400 dark:text-slate-600'
+                      : isClickableSolve
+                        ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 shadow-glow-cyan animate-bounce'
+                        : 'bg-slate-205 dark:bg-slate-850 text-slate-400 dark:text-slate-600'
                 }`}>
                   {isCompleted ? '✓' : idx + 1}
                 </div>
@@ -250,7 +267,9 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
                     ? 'text-cyan-500' 
                     : isCompleted 
                       ? 'text-emerald-500' 
-                      : 'text-slate-400 dark:text-slate-500'
+                      : isClickableSolve
+                        ? 'text-cyan-500 font-bold group-hover/step:underline'
+                        : 'text-slate-400 dark:text-slate-500'
                 }`}>
                   {labels[idx]}
                 </span>
@@ -487,6 +506,33 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
                 </div>
                 
                 <div className="flex flex-col gap-3">
+                  {(complaint.status === 'Complaint Verified' || complaint.status === 'Verified') && (
+                    <div className="p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-left animate-fadeIn">
+                      <div className="flex-1 min-w-0">
+                        <strong className="text-xs font-bold text-slate-800 dark:text-white block">👈 Click Step 3 or Scan ID to Start Solving</strong>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                          To advance this ticket to the <strong>Solving Started</strong> stage, you must perform a secure student ID verification check. Click scan to open camera.
+                        </p>
+                      </div>
+                      <PremiumButton 
+                        type="button" 
+                        variant="glow" 
+                        size="sm" 
+                        className="shrink-0 font-extrabold uppercase tracking-wider text-[10px] shadow-glow-cyan"
+                        onClick={() => {
+                          localStorage.setItem('tsrv_solve_ticket_id', ticketId);
+                          localStorage.setItem('tsrv_solve_source_path', window.location.hash.split('?')[0]);
+                          localStorage.setItem('tsrv_solve_note', 'Solving started after student ID verification.');
+                          localStorage.setItem('tsrv_solve_resolution', '');
+                          onClose();
+                          navigate(`/dashboard/qr-scanner?solve_ticket_id=${ticketId}`);
+                        }}
+                      >
+                        📷 Scan Card
+                      </PremiumButton>
+                    </div>
+                  )}
+
                   <form onSubmit={handleUpdateStatus} className="flex items-end gap-3">
                     <div className="flex-1">
                       <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Shift Status</label>

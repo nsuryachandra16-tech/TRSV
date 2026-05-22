@@ -212,7 +212,7 @@ export default function Home() {
             Ecosystem Mandates
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white tracking-normal">
-            Statewide Student Protection & Grievance Shield
+            Statewide Student Protection & Complaint Shield
           </h2>
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
             TSRV employs secure technology, localized command nodes, and formal legal networks to safeguard students across campus clusters from extortion, ragging, and administrative malpractice.
@@ -309,7 +309,7 @@ export default function Home() {
               { step: '02', title: 'On-Campus Fact Finding', desc: 'Vetted on-campus Secretaries initiate confidential fact validation within 2 hours.' },
               { step: '03', title: 'Constituency Escalation', desc: 'Validated files escalate directly to the Constituency General Secretary, alerting district advisors.' },
               { step: '04', title: 'Mediation & Dispatch', desc: 'Formal administrative mandates, legal notices, or rapid campus safety dispatches are executed.' },
-              { step: '05', title: 'Public Logs Sealed', desc: 'Grievance resolution times and cryptographic audit hashes lock into public registry registers.' }
+              { step: '05', title: 'Public Logs Sealed', desc: 'Complaint resolution times and cryptographic audit hashes lock into public registry registers.' }
             ].map((item, idx) => {
               const isEven = idx % 2 === 0;
               return (

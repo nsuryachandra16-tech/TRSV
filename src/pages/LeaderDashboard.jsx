@@ -8,7 +8,7 @@ import ComplaintDetailsModal from '../components/ComplaintDetailsModal';
 import RealtimeActivityFeed from '../components/RealtimeActivityFeed';
 import { CategoryPieChart } from '../components/RechartsWidgets';
 import EmergencyFallback from '../components/EmergencyFallback';
-import GrievanceFilters from '../components/GrievanceFilters';
+import ComplaintFilters from '../components/ComplaintFilters';
 import HubChat from '../components/HubChat';
 
 export default function LeaderDashboard() {
@@ -287,7 +287,7 @@ export default function LeaderDashboard() {
       </div>
 
       {/* Advanced Filtering Matrix */}
-      <GrievanceFilters 
+      <ComplaintFilters 
         onFilterChange={handleFilterChange} 
         constituencies={constituencyList}
       />

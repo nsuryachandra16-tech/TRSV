@@ -30,7 +30,7 @@ export default function SupportHub() {
   const rightsGuides = [
     { title: 'Union Representation Guideline', desc: 'Step-by-step reporting protocols and local union coordinator mediation dispatch codes.' },
     { title: 'Campus Malpractice Redressal', desc: 'How to document unauthorized charges and trigger constituency escalation routes.' },
-    { title: 'Academic Grievance Mitigation', desc: 'Secure dispute filings and on-campus representative mediation guidelines.' }
+    { title: 'Academic Complaint Mitigation', desc: 'Secure dispute filings and on-campus representative mediation guidelines.' }
   ];
 
   return (
@@ -45,7 +45,7 @@ export default function SupportHub() {
           Student Issue Support & Union Assistance Hub
         </h1>
         <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed text-center">
-          A centralized, technology-driven protection infrastructure. Access immediate union email coordinates, student charter rights, and constituency grievance escalation systems.
+          A centralized, technology-driven protection infrastructure. Access immediate union email coordinates, student charter rights, and constituency complaint escalation systems.
         </p>
       </AnimatedSection>
 
@@ -190,12 +190,12 @@ export default function SupportHub() {
             <div className="flex flex-col gap-1">
               <span className="font-extrabold text-slate-850 dark:text-white">Immediate Campus Mediation Need?</span>
               <p className="text-xs text-slate-500 leading-relaxed">
-                If you are facing severe grievances or unfair academic action, log a union grievance docket via your dashboard or write to support@tsrv.org immediately.
+                If you are facing severe complaints or unfair academic action, log a union complaint docket via your dashboard or write to support@tsrv.org immediately.
               </p>
             </div>
           </div>
           <PremiumButton variant="primary" size="md" className="shrink-0" onClick={() => navigate('/contact')}>
-            Lodge Grievance Docket
+            Lodge Complaint Docket
           </PremiumButton>
         </GlassCard>
       </AnimatedSection>
