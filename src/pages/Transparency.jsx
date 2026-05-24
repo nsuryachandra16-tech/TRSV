@@ -143,7 +143,7 @@ export default function Transparency() {
             <div className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400">
               <Activity className="w-5 h-5" />
             </div>
-            <h2 className="font-extrabold text-xl text-slate-850 dark:text-white tracking-tight">Live Operations Ledger</h2>
+            <h2 className="font-extrabold text-xl text-slate-850 dark:text-white tracking-tight">Live Complaint Tracker</h2>
           </div>
 
           <GlassCard className="flex flex-col gap-1 p-2 overflow-hidden relative h-full max-h-[500px]">
@@ -177,7 +177,7 @@ export default function Transparency() {
                   </div>
                 </div>
               )) : (
-                <div className="py-10 text-center text-sm font-bold text-slate-400 uppercase tracking-wider">Ledger currently silent.</div>
+                <div className="py-10 text-center text-sm font-bold text-slate-400 uppercase tracking-wider">Tracker currently silent.</div>
               )}
             </div>
           </GlassCard>

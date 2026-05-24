@@ -235,7 +235,7 @@ export default function DashboardLayout() {
           desc: 'List of colleges and districts'
         },
         {
-          name: 'Public Ledger',
+          name: 'Complaint Board',
           path: '/dashboard/transparency',
           icon: <CheckCircle className="w-5 h-5" />,
           desc: 'Verifiable complaint list'
