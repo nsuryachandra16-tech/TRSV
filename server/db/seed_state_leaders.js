@@ -30,7 +30,7 @@ const seedStateLeaders = async () => {
       id: 'gh-gs-karthik',
       full_name: 'Ch. Karthik Yadav',
       email: 'karthikyadavtjsf@gmail.com',
-      role: 'digital_operations_president',
+      role: 'general_secretary',
       phone: '8142443684',
       profile_image: '/karthikyadav.jpg',
       rawSecret: 'ghgs_secret'.split('_')[0],

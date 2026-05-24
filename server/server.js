@@ -303,7 +303,7 @@ httpServer.listen(PORT, async () => {
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (email) DO UPDATE 
       SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, verified = EXCLUDED.verified
-    `, ['MASTER_DEV_UID', 'Suryachandra (Developer)', devEmail, devHash, 'dev', true]);
+    `, ['MASTER_DEV_UID', 'Suryachandra', devEmail, devHash, 'dev', true]);
     console.log('👑 [Database] Master Dev credentials synchronized.');
   } catch (devErr) {
     console.error('🚨 [Database] Failed to seed master dev credentials:', devErr.message);
@@ -398,7 +398,7 @@ httpServer.listen(PORT, async () => {
           role = EXCLUDED.role,
           phone = EXCLUDED.phone,
           constituency_id = EXCLUDED.constituency_id
-      `, ['gh-gs-karthik', 'Ch. Karthik Yadav', 'karthikyadavtjsf@gmail.com', 'digital_operations_president', '8142443684', '/karthikyadav.jpg', karthikHash, ghId]);
+      `, ['gh-gs-karthik', 'Ch. Karthik Yadav', 'karthikyadavtjsf@gmail.com', 'general_secretary', '8142443684', '/karthikyadav.jpg', karthikHash, ghId]);
     }
     console.log('🔹 [Database] Ch. Karthik Yadav & Old leaders synchronized.');
   } catch (syncErr) {

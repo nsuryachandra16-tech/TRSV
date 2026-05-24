@@ -11,7 +11,7 @@ const formatRole = (role, tier) => {
   if (role === 'general_secretary' && tier === 'hub') return 'Greater Hyderabad General Secretary';
   if (role === 'general_secretary') return 'General Secretary';
   if (role === 'digital_operations_president') return 'Greater Hyderabad Digital Operations President';
-  if (role === 'dev') return 'Digital Architect & Developer';
+  if (role === 'dev') return 'Developer & Greater Hyderabad Digital Operations President';
   if (role === 'vice_president') return 'Vice President';
   if (role === 'secretary') return 'Secretary';
   return role.replace(/_/g, ' ').toUpperCase();
@@ -25,7 +25,7 @@ const getRoleDesc = (role, tier) => {
   if (role === 'president' || role === 'state_president') return 'Leads local constituency operations, campus safety coordination, and complaint redressal processes for assigned student communities.';
   if (role === 'general_secretary') return 'Handles constituency documentation, issue tracking, representative coordination, and administrative escalation workflows.';
   if (role === 'digital_operations_president') return 'Commands Greater Hyderabad digital operations, managing real-time security telemetry, constituency hub networks, and the online safety portal.';
-  if (role === 'dev') return 'Digital Architect of TSRV — designs, implements, and maintains the high-fidelity secure operating portal, database clusters, and student emergency telemetry networks.';
+  if (role === 'dev') return 'Digital Architect of TSRV — designs, implements, and maintains the high-fidelity secure operating portal, database clusters, and student emergency telemetry networks, and commands Greater Hyderabad digital operations.';
   return 'Board coordinator providing governance support, legal aid, and dispute resolution tracking in the assigned region.';
 };
 
