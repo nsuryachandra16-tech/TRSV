@@ -25,7 +25,7 @@ const requireRole = (allowedRoles) => async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Governance profile not found.' });
     }
 
-    const userRole = userQuery.rows[0].role;
+    let userRole = userQuery.rows[0].role;
     if (userRole === 'dev') {
       req.user = {
         uid: decoded.uid,
@@ -37,14 +37,16 @@ const requireRole = (allowedRoles) => async (req, res, next) => {
       return next();
     }
 
-    if (!allowedRoles.includes(userRole)) {
+    const effectiveRole = userRole === 'digital_operations_president' ? 'general_secretary' : userRole;
+
+    if (!allowedRoles.includes(effectiveRole)) {
       return res.status(403).json({ success: false, message: 'Forbidden: Access level restricted.' });
     }
 
     req.user = {
       uid: decoded.uid,
       email: decoded.email,
-      role: userRole,
+      role: effectiveRole,
       constituency_id: userQuery.rows[0].constituency_id,
       college_id: userQuery.rows[0].college_id
     };
@@ -153,15 +155,16 @@ router.get('/leaders-grid', async (req, res) => {
              u.constituency_id, con.constituency_name, con.id as hub_id
       FROM users u
       LEFT JOIN constituencies con ON u.constituency_id = con.id
-      WHERE u.role != 'student' AND u.role != 'supreme_admin'
+      WHERE u.role != 'student' AND u.role != 'supreme_admin' AND u.role != 'dev'
         AND u.constituency_id IS NOT NULL
         AND con.parent_id IS NULL
       ORDER BY con.constituency_name ASC, CASE u.role
         WHEN 'state_president' THEN 1
         WHEN 'president' THEN 2
-        WHEN 'general_secretary' THEN 3
-        WHEN 'secretary' THEN 4
-        ELSE 5
+        WHEN 'digital_operations_president' THEN 3
+        WHEN 'general_secretary' THEN 4
+        WHEN 'secretary' THEN 5
+        ELSE 6
       END ASC
     `);
 
@@ -171,7 +174,7 @@ router.get('/leaders-grid', async (req, res) => {
              u.constituency_id, con.constituency_name, con.parent_id
       FROM users u
       LEFT JOIN constituencies con ON u.constituency_id = con.id
-      WHERE u.role != 'student' AND u.role != 'supreme_admin'
+      WHERE u.role != 'student' AND u.role != 'supreme_admin' AND u.role != 'dev'
         AND u.constituency_id IS NOT NULL
         AND con.parent_id IS NOT NULL
       ORDER BY con.constituency_name ASC, CASE u.role
@@ -183,10 +186,26 @@ router.get('/leaders-grid', async (req, res) => {
       END ASC
     `);
 
+    // Retrieve developer to display in Tier 2 (Greater Hyderabad)
+    const devResult = await query(`
+      SELECT u.id, u.full_name, u.email, u.role, u.phone, u.profile_image, u.verified
+      FROM users u
+      WHERE u.role = 'dev'
+      LIMIT 1
+    `);
+
+    let mainHubLeaders = hubResult.rows;
+    if (devResult.rows.length > 0) {
+      const devLeader = devResult.rows[0];
+      devLeader.constituency_name = 'Greater Hyderabad';
+      devLeader.hub_id = mainHubLeaders[0]?.hub_id || null;
+      mainHubLeaders = [...mainHubLeaders, devLeader];
+    }
+
     res.json({
       success: true,
       statewideLeaders: stateResult.rows,
-      mainHubLeaders: hubResult.rows,
+      mainHubLeaders,
       localLeaders: localResult.rows
     });
   } catch (error) {

@@ -373,6 +373,39 @@ httpServer.listen(PORT, async () => {
     console.error('🚨 [Database] Failed to sync announcements image_url column:', imgErr.message);
   }
 
+  // STEP 9: Clean up old leaders and sync Ch. Karthik Yadav
+  try {
+    const ghRes = await pool.query("SELECT id FROM constituencies WHERE constituency_name = 'Greater Hyderabad'");
+    const ghId = ghRes.rows.length > 0 ? ghRes.rows[0].id : null;
+
+    // 1. Delete Pranith and Omkar
+    await pool.query("DELETE FROM users WHERE email IN ('pranith@tsrv.gov.in', 'omkar@tsrv.gov.in')");
+
+    // 2. Upsert Ch. Karthik Yadav as digital_operations_president
+    if (ghId) {
+      const cryptoModule = await import('crypto');
+      const crypto = cryptoModule.default || cryptoModule;
+      const pass = 'karthik_secret';
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = crypto.pbkdf2Sync(pass, salt, 1000, 64, 'sha512').toString('hex');
+      const karthikHash = `${salt}:${hash}`;
+
+      await pool.query(`
+        INSERT INTO users (id, full_name, email, role, phone, profile_image, verified, password_hash, constituency_id)
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8)
+        ON CONFLICT (email) DO UPDATE SET
+          full_name = EXCLUDED.full_name,
+          role = EXCLUDED.role,
+          phone = EXCLUDED.phone,
+          constituency_id = EXCLUDED.constituency_id
+      `, ['gh-gs-karthik', 'Ch. Karthik Yadav', 'karthikyadavtjsf@gmail.com', 'digital_operations_president', '8142443684', '/karthikyadav.jpg', karthikHash, ghId]);
+    }
+    console.log('🔹 [Database] Ch. Karthik Yadav & Old leaders synchronized.');
+  } catch (syncErr) {
+    console.error('🚨 [Database] Failed to sync Ch. Karthik Yadav & old leaders:', syncErr.message);
+  }
+
+
   // Background auto-escalation scheduler
   setTimeout(() => {
     runAutoEscalationJob().catch(err => console.error('Initial cron job error:', err.message));

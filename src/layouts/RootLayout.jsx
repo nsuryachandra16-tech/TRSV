@@ -328,7 +328,7 @@ export default function RootLayout() {
                   <Phone className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <span className="block font-semibold text-slate-700 dark:text-slate-300">support@tsrv.org</span>
+                  <a href="mailto:karthikyadavtjsf@gmail.com" className="block font-semibold text-slate-700 dark:text-slate-300 hover:underline">karthikyadavtjsf@gmail.com</a>
                   <span className="text-[11px] text-slate-400">Email Assistance Support</span>
                 </div>
               </li>
@@ -337,8 +337,8 @@ export default function RootLayout() {
                   <Phone className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <span className="block font-semibold text-slate-700 dark:text-slate-300">dispatch@tsrv.org</span>
-                  <span className="text-[11px] text-slate-400">Union Escalations Hub</span>
+                  <a href="tel:8142443684" className="block font-semibold text-slate-700 dark:text-slate-300 hover:underline">+91 8142443684</a>
+                  <span className="text-[11px] text-slate-400">Direct Support Hotline</span>
                 </div>
               </li>
             </ul>

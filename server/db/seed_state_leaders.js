@@ -24,36 +24,16 @@ const seedStateLeaders = async () => {
     process.exit(1);
   }
 
-  // Define leaders (Excluding Ramu Yadav and Gummadi Kranthi for now as requested)
+  // Define leaders
   const leaders = [
     {
       id: 'gh-gs-karthik',
       full_name: 'Ch. Karthik Yadav',
-      email: 'karthik@tsrv.gov.in',
-      role: 'general_secretary',
-      phone: null,
+      email: 'karthikyadavtjsf@gmail.com',
+      role: 'digital_operations_president',
+      phone: '8142443684',
       profile_image: '/karthikyadav.jpg',
       rawSecret: 'ghgs_secret'.split('_')[0],
-      constituency_id: ghId
-    },
-    {
-      id: 'gh-sec-pranith',
-      full_name: 'Pranith',
-      email: 'pranith@tsrv.gov.in',
-      role: 'secretary',
-      phone: null,
-      profile_image: '/pranith.jpg',
-      rawSecret: 'pranith_secret'.split('_')[0],
-      constituency_id: ghId
-    },
-    {
-      id: 'gh-sec-omkar',
-      full_name: 'Omkar MaNe',
-      email: 'omkar@tsrv.gov.in',
-      role: 'secretary',
-      phone: null,
-      profile_image: '/omkar.jpg',
-      rawSecret: 'omkar_secret'.split('_')[0],
       constituency_id: ghId
     }
   ];
@@ -62,9 +42,9 @@ const seedStateLeaders = async () => {
   try {
     await dbClient.query('BEGIN');
 
-    // 🧹 Clean up Ramu Yadav and Gummadi Kranthi from database to remove them from command board
-    await dbClient.query("DELETE FROM users WHERE email IN ('ramuanna@tsrv.gov.in', 'kranthi@tsrv.gov.in')");
-    console.log('🧹 Cleaned up Ramu Yadav and Gummadi Kranthi from database.');
+    // 🧹 Clean up Ramu Yadav, Gummadi Kranthi, Pranith, and Omkar from database
+    await dbClient.query("DELETE FROM users WHERE email IN ('ramuanna@tsrv.gov.in', 'kranthi@tsrv.gov.in', 'pranith@tsrv.gov.in', 'omkar@tsrv.gov.in', 'karthik@tsrv.gov.in')");
+    console.log('🧹 Cleaned up old/unused leaders from database.');
 
     for (const lead of leaders) {
       const passwordHash = hashPassword(lead.rawSecret);

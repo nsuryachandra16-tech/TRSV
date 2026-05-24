@@ -70,8 +70,8 @@ export default function SupportHub() {
                 <span className="font-black text-slate-800 dark:text-white block">General Support Helpdesk</span>
                 <span className="text-xs text-slate-455">Direct coordinator email response and campus support</span>
               </div>
-              <a href="mailto:support@tsrv.org" className="inline-flex items-center gap-1.5 font-bold text-cyan-500 hover:underline shrink-0">
-                support@tsrv.org
+              <a href="mailto:karthikyadavtjsf@gmail.com" className="inline-flex items-center gap-1.5 font-bold text-cyan-500 hover:underline shrink-0">
+                karthikyadavtjsf@gmail.com
               </a>
             </div>
 
@@ -80,17 +80,19 @@ export default function SupportHub() {
                 <span className="font-bold text-slate-850 dark:text-white block">Union Operations Hub</span>
                 <span className="text-xs text-slate-455">Local coordinate council escalation support and mediation</span>
               </div>
-              <a href="mailto:dispatch@tsrv.org" className="inline-flex items-center gap-1.5 font-bold text-cyan-500 hover:underline shrink-0">
-                dispatch@tsrv.org
+              <a href="mailto:karthikyadavtjsf@gmail.com" className="inline-flex items-center gap-1.5 font-bold text-cyan-500 hover:underline shrink-0">
+                karthikyadavtjsf@gmail.com
               </a>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-850 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="font-bold text-slate-850 dark:text-white block">Constituency Support Desk</span>
-                <span className="text-xs text-slate-455">Escalates ticket files directly to regional representative leads</span>
+                <span className="text-xs text-slate-455">Direct hotline support line for escalation and emergencies</span>
               </div>
-              <span className="font-mono text-slate-600 dark:text-slate-350">Active Union Channels</span>
+              <a href="tel:8142443684" className="inline-flex items-center gap-1.5 font-bold text-cyan-500 hover:underline shrink-0">
+                +91 8142443684
+              </a>
             </div>
           </div>
         </GlassCard>
@@ -141,7 +143,7 @@ export default function SupportHub() {
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center p-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-850 text-xs">
               <span className="font-bold text-slate-800 dark:text-white">Confidential Advisory Support</span>
-              <a href="mailto:support@tsrv.org" className="font-extrabold text-sky-500">support@tsrv.org</a>
+              <a href="mailto:karthikyadavtjsf@gmail.com" className="font-extrabold text-sky-500">karthikyadavtjsf@gmail.com</a>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl bg-slate-100/50 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-850 text-xs">
               <span className="font-bold text-slate-800 dark:text-white">State Peer Counseling Cell</span>
@@ -190,7 +192,7 @@ export default function SupportHub() {
             <div className="flex flex-col gap-1">
               <span className="font-extrabold text-slate-850 dark:text-white">Immediate Campus Mediation Need?</span>
               <p className="text-xs text-slate-500 leading-relaxed">
-                If you are facing severe complaints or unfair academic action, log a union complaint docket via your dashboard or write to support@tsrv.org immediately.
+                If you are facing severe complaints or unfair academic action, log a union complaint docket via your dashboard or write to karthikyadavtjsf@gmail.com immediately.
               </p>
             </div>
           </div>
