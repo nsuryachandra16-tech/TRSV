@@ -278,8 +278,8 @@ export default function DashboardLayout() {
       <FloatingParticles />
 
       {/* Premium Ambient Glow Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-500/8 to-blue-500/5 dark:from-cyan-500/4 dark:to-blue-600/2 blur-[120px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-br from-purple-500/8 to-cyan-500/5 dark:from-purple-500/3 dark:to-cyan-600/2 blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-500/8 to-blue-500/5 dark:from-cyan-500/4 dark:to-blue-600/2 blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-br from-purple-500/8 to-cyan-500/5 dark:from-purple-500/3 dark:to-cyan-600/2 blur-[120px] pointer-events-none z-0" />
 
       {/* Sidebar - Desktop Layout */}
       <aside className="hidden lg:flex flex-col w-80 border-r border-slate-200/50 dark:border-slate-900/60 glass-panel-light dark:glass-panel-dark z-25 shrink-0 relative h-screen">
