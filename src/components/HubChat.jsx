@@ -272,7 +272,7 @@ export default function HubChat({ user }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 h-[calc(100vh-170px)] sm:h-[calc(100vh-200px)] lg:h-[calc(100vh-220px)] min-h-[460px] lg:min-h-[600px] lg:max-h-[850px] shadow-premium-light dark:shadow-premium-dark overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex-1 min-h-0 shadow-premium-light dark:shadow-premium-dark overflow-hidden">
       
       {/* SIDEBAR: Channels & Switcher */}
       <div className={`col-span-1 lg:border-r border-slate-200 dark:border-slate-800/60 lg:pr-6 flex flex-col h-full overflow-hidden ${
