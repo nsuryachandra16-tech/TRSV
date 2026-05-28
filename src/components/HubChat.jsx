@@ -19,7 +19,6 @@ export default function HubChat({ user }) {
   };
 
   const [constituencies, setConstituencies] = useState([]);
-  const [activeChannels, setActiveChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typingUsers, setTypingUsers] = useState({}); // format: { userId: { name, role } }
   const [socketConnected, setSocketConnected] = useState(false);
@@ -38,30 +37,7 @@ export default function HubChat({ user }) {
 
   const isDevOrSupreme = user.role === 'dev' || user.role === 'supreme_admin';
 
-  // 1. Fetch active channels for Dev / Supreme
-  const fetchActiveChannels = () => {
-    if (isDevOrSupreme) {
-      const token = localStorage.getItem('trsv_session_token') || localStorage.getItem('token') || sessionStorage.getItem('token');
-      fetch('/api/chat/active-channels', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => {
-          if (res.status === 401 || res.status === 403) {
-            logout();
-            throw new Error('Session expired');
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data.success) {
-            setActiveChannels(data.channels);
-          }
-        })
-        .catch(err => console.error('Failed to load active channels:', err));
-    }
-  };
-
-  // 2. Fetch constituencies to enable channel switcher
+  // 1. Fetch constituencies to enable channel switcher
   useEffect(() => {
     const isLeadership = user.role !== 'student';
     if (isDevOrSupreme || isLeadership) {
@@ -73,8 +49,6 @@ export default function HubChat({ user }) {
           }
         })
         .catch(err => console.error('Failed to load constituencies:', err));
-      
-      fetchActiveChannels();
     }
   }, [isDevOrSupreme, user.role]);
 
@@ -108,8 +82,6 @@ export default function HubChat({ user }) {
           return [...prev, msg];
         });
       }
-      // Refresh active channels list dynamically
-      fetchActiveChannels();
     });
 
     // Message edited listener
@@ -332,41 +304,7 @@ export default function HubChat({ user }) {
             )}
           </div>
 
-          {/* Dev/Supreme Admin Active Groups list */}
-          {isDevOrSupreme && activeChannels.filter(c => c.channel_id !== 'GH-Global').length > 0 && (
-            <div className="pt-3 flex flex-col border-t border-slate-200 dark:border-slate-800/50 gap-2">
-              <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400/90 uppercase tracking-widest px-1 block">
-                Active Group Chats
-              </span>
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-                {activeChannels.filter(c => c.channel_id !== 'GH-Global').map((ch, idx) => {
-                  const isActive = currentChannel === ch.channel_id;
-                  const constituencyName = ch.channel_id.replace('GH-Constituency-', '');
-                  return (
-                    <button
-                      key={ch.channel_id}
-                      onClick={() => handleSelectChannel(ch.channel_id)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
-                        isActive
-                          ? 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/30 text-cyan-800 dark:text-cyan-205 font-extrabold shadow-sm'
-                          : 'bg-slate-55/50 dark:bg-slate-950/20 border-slate-100 dark:border-slate-855/40 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/30 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      <div className="text-xs flex items-center justify-between">
-                        <span className="truncate">Group {idx + 1}: {constituencyName}</span>
-                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse shrink-0 ml-1.5" />}
-                      </div>
-                      {ch.participants && ch.participants.length > 0 && (
-                        <div className="text-[9px] text-slate-450 dark:text-slate-500 mt-1.5 truncate">
-                          👥 {ch.participants.map(p => `${p.name} (${formatRole(p.role)})`).join(', ')}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+
 
           {/* Area Switcher (Dev/Supreme or Parent Hub leaders) */}
           {(isDevOrSupreme || filteredConstituencies.length > 0) && (

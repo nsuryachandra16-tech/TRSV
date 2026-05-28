@@ -827,15 +827,13 @@ export default function CommandCenter() {
 
                     {req.status === 'Pending' && (
                       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <PremiumButton
-                          variant="glow"
-                          size="sm"
+                        <button
                           onClick={() => handleUpdateRequestStatus(req.id, 'Approved')}
-                          icon={<Check className="w-3.5 h-3.5" />}
-                          className="bg-green-600 border-green-600 text-white"
+                          className="inline-flex items-center justify-center font-bold rounded-xl transition-all duration-300 active:scale-95 px-4 py-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-md border border-emerald-500/20 gap-1.5 cursor-pointer"
                         >
+                          <Check className="w-3.5 h-3.5" />
                           Approve
-                        </PremiumButton>
+                        </button>
                         <PremiumButton
                           variant="secondary"
                           size="sm"
