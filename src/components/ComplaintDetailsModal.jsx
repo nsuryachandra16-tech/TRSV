@@ -11,7 +11,7 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
   const [error, setError] = useState('');
   
   // Mobile active tab state
-  const [activeMobileTab, setActiveMobileTab] = useState('details'); // 'details' or 'discussion'
+  const [activeMobileTab, setActiveMobileTab] = useState('brief'); // 'brief', 'discussions', or 'chat'
   
   // Discussion state
   const [newComment, setNewComment] = useState('');
@@ -569,26 +569,38 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
         </div>
 
         {/* Mobile Tab Switcher */}
-        <div className="flex lg:hidden bg-slate-100/80 dark:bg-slate-850/80 border-b border-slate-200/60 dark:border-slate-850 shrink-0 p-1 bg-trsv-surface-light dark:bg-trsv-surface-dark">
+        <div className="flex lg:hidden bg-slate-100/80 dark:bg-slate-850/80 border-b border-slate-200/60 dark:border-slate-855 shrink-0 p-1 bg-trsv-surface-light dark:bg-trsv-surface-dark gap-1">
           <button
-            onClick={() => setActiveMobileTab('details')}
+            onClick={() => setActiveMobileTab('brief')}
             className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
-              activeMobileTab === 'details'
+              activeMobileTab === 'brief'
                 ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200/50 dark:border-slate-800'
                 : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-200'
             }`}
           >
-            📋 Brief & Timeline
+            📋 Brief
           </button>
+          {isLeader && (complaint.status !== 'Solved' || isSupremeUser) && (
+            <button
+              onClick={() => setActiveMobileTab('discussions')}
+              className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
+                activeMobileTab === 'discussions'
+                  ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200/50 dark:border-slate-800'
+                  : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-200'
+              }`}
+            >
+              ⚖️ Actions
+            </button>
+          )}
           <button
-            onClick={() => setActiveMobileTab('discussion')}
+            onClick={() => setActiveMobileTab('chat')}
             className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
-              activeMobileTab === 'discussion'
+              activeMobileTab === 'chat'
                 ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200/50 dark:border-slate-800'
                 : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-200'
             }`}
           >
-            💬 Discussion & Actions
+            💬 Chat
           </button>
         </div>
 
@@ -597,7 +609,7 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
           
           {/* Left Column: Details & Timeline */}
           <div className={`w-full lg:w-1/2 flex flex-col border-r border-slate-200/50 dark:border-slate-800 bg-white dark:bg-slate-900/50 overflow-y-auto custom-sidebar-scrollbar p-5 sm:p-6 gap-6 sm:gap-8 ${
-            activeMobileTab === 'details' ? 'flex' : 'hidden lg:flex'
+            activeMobileTab === 'brief' ? 'flex' : 'hidden lg:flex'
           }`}>
             
             {/* Status Progress Stepper */}
@@ -614,22 +626,22 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                 <div className="break-words">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Student</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-880 dark:text-white flex items-center gap-1.5">
                     {complaint.anonymous ? <Shield className="w-3.5 h-3.5 text-cyan-500" /> : null}
                     {complaint.student_name}
                   </span>
                 </div>
                 <div className="break-words">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white">{complaint.category}</span>
+                  <span className="text-xs font-bold text-slate-880 dark:text-white">{complaint.category}</span>
                 </div>
                 <div className="col-span-1 sm:col-span-2 break-words">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">College Node</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white block" title={complaint.college_name}>{complaint.college_name || 'State Scope'}</span>
+                  <span className="text-xs font-bold text-slate-880 dark:text-white block" title={complaint.college_name}>{complaint.college_name || 'State Scope'}</span>
                 </div>
                 <div className="col-span-1 sm:col-span-2 break-words">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Constituency Hub</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white block">{complaint.constituency_name || 'State Scope'}</span>
+                  <span className="text-xs font-bold text-slate-880 dark:text-white block">{complaint.constituency_name || 'State Scope'}</span>
                 </div>
                 <div className="col-span-1 sm:col-span-2 break-words border-t border-slate-100 dark:border-slate-800/80 pt-3">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Claimed Leader / Handler</span>
@@ -689,7 +701,7 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
 
           {/* Right Column: Discussions & Controls */}
           <div className={`w-full lg:w-1/2 flex flex-col bg-slate-50/50 dark:bg-slate-900 overflow-hidden relative ${
-            activeMobileTab === 'discussion' ? 'flex' : 'hidden lg:flex'
+            activeMobileTab === 'discussions' || activeMobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
           }`}>
             {showScannerChamber ? (
               // Holographic Scanner Panel
@@ -933,7 +945,9 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
             ) : (
               // Threaded Discussion Panel
               <>
-                <div className="flex flex-col flex-1 overflow-hidden p-4 sm:p-6 border-b border-slate-200/50 dark:border-slate-800">
+                <div className={`flex flex-col flex-1 overflow-hidden p-4 sm:p-6 border-b border-slate-200/50 dark:border-slate-800 ${
+                  activeMobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
+                }`}>
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-white mb-4 flex items-center gap-2 shrink-0">
                     <MessageSquare className="w-4 h-4 text-cyan-500" /> Operations Discussion
                   </h3>
@@ -976,7 +990,7 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
                       placeholder="Type coordination message..."
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-850 text-sm focus:outline-none focus:border-cyan-400 text-slate-800 dark:text-white"
+                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-855 text-sm focus:outline-none focus:border-cyan-400 text-slate-800 dark:text-white"
                     />
                     <button 
                       type="submit"
@@ -990,7 +1004,9 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
  
                 {/* Leader Override & Escalation Panel */}
                 {isLeader && (complaint.status !== 'Solved' || isSupremeUser) && (
-                  <div className="p-4 sm:p-6 bg-slate-100/90 dark:bg-slate-850/90 shrink-0">
+                  <div className={`p-4 sm:p-6 bg-slate-100/90 dark:bg-slate-850/90 overflow-y-auto ${
+                    activeMobileTab === 'discussions' ? 'flex flex-col flex-1' : 'hidden lg:flex lg:shrink-0'
+                  }`}>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Play className="w-3 h-3 text-cyan-500" /> Leadership Handler Actions
@@ -1075,7 +1091,6 @@ export default function ComplaintDetailsModal({ ticketId, onClose, userProfile, 
                         <PremiumButton type="submit" variant="secondary" size="sm" disabled={updating || !escalateLevel} className="w-full sm:w-auto !border-rose-500/30 !text-rose-500 hover:!bg-rose-500 hover:!text-white">Escalate Up</PremiumButton>
                       </form>
                     </div>
- 
                   </div>
                 )}
               </>
