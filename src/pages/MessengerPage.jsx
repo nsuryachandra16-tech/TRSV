@@ -16,7 +16,7 @@ export default function MessengerPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col gap-4 animate-fadeIn text-left">
+    <div className="w-full flex-1 min-h-0 flex flex-col gap-4 animate-fadeIn text-left">
       <div className="flex flex-col gap-1 shrink-0">
         <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
           Messenger Node
