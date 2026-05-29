@@ -16,8 +16,7 @@ const pool = new Pool({
   ssl: connectionString && connectionString.includes('neon.tech') ? { rejectUnauthorized: false } : false,
   max: 20, // Max 20 connections in pool
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  options: '-c statement_timeout=30000' // Abort queries running longer than 30s
+  connectionTimeoutMillis: 5000
 });
 
 pool.on('connect', () => {
