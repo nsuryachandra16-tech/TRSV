@@ -1,0 +1,12 @@
+{
+  "appId": "com.trsv.governance",
+  "appName": "TRSV",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": [
+      "trsv-union.onrender.com"
+    ]
+  }
+}

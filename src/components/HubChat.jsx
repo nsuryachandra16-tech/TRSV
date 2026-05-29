@@ -54,7 +54,9 @@ export default function HubChat({ user }) {
 
   // 3. Configure socket connection
   useEffect(() => {
-    const socketUrl = import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin;
+    const socketUrl = window.Capacitor
+      ? 'https://trsv-union.onrender.com'
+      : (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
     
     // Connect socket
     socketRef.current = io(socketUrl, {

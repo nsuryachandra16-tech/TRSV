@@ -46,17 +46,30 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:5173';
+const allowedOrigins = [
+  ALLOWED_ORIGIN,
+  'http://localhost',
+  'capacitor://localhost'
+];
+
+const corsOriginHandler = (origin, callback) => {
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+    return callback(null, true);
+  }
+  return callback(null, false); // Fail safely, but let CORS middleware handle it
+};
 
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ALLOWED_ORIGIN,
+    origin: corsOriginHandler,
     methods: ['GET', 'POST']
   }
 });
 
 // Enable JSON parsers and compression
 app.use(compression());
-app.use(cors({ origin: ALLOWED_ORIGIN }));
+app.use(cors({ origin: corsOriginHandler }));
 app.use(express.json({ limit: '10kb' })); // Mitigate payload attacks
 app.disable('x-powered-by');
 

@@ -157,7 +157,8 @@ export default function LeaderDashboard() {
 
     // Wire up to Enterprise SSE stream
     const token = localStorage.getItem('trsv_session_token');
-    const eventSource = new EventSource(`/api/realtime/stream?token=${token}`);
+    const base = window.Capacitor ? 'https://trsv-union.onrender.com' : '';
+    const eventSource = new EventSource(`${base}/api/realtime/stream?token=${token}`);
     eventSource.onopen = () => {
       setConnectionDropped(false);
     };

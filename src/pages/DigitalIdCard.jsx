@@ -59,7 +59,8 @@ export default function DigitalIdCard() {
   // Generate QR code locally as a data URL whenever the identity token changes
   useEffect(() => {
     if (identity?.qr_token) {
-      const verifyUrl = `${window.location.origin}/#/verify/${identity.qr_token}`;
+      const originUrl = window.Capacitor ? 'https://trsv-union.onrender.com' : window.location.origin;
+      const verifyUrl = `${originUrl}/#/verify/${identity.qr_token}`;
       QRCode.toDataURL(verifyUrl, {
         width: 300,
         margin: 1,
