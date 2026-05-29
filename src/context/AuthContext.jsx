@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }) => {
       if (data.success && data.token) {
         setToken(data.token);
         localStorage.setItem('trsv_session_token', data.token);
-        console.log('🔄 [AuthContext] Token silently refreshed — valid for 30 more days.');
+        console.log('🔄 [AuthContext] Token silently refreshed — valid for 7 more days.');
         return data.token;
       }
     } catch (err) {
@@ -221,10 +221,10 @@ export const AuthProvider = ({ children }) => {
       setLoading(false); // Unlock UI immediately — background tasks run after
 
       // ── Proactive silent refresh ─────────────────────────────────────────
-      // If the token expires within 7 days, silently get a new 30-day token
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      // If the token expires within 1 day, silently get a new 7-day token
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       let activeToken = storedToken;
-      if (timeLeft < SEVEN_DAYS_MS) {
+      if (timeLeft < ONE_DAY_MS) {
         console.log('[AuthContext] Token expiring soon — triggering silent refresh...');
         const refreshed = await silentRefresh(storedToken);
         if (refreshed) activeToken = refreshed;

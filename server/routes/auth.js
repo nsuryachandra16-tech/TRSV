@@ -397,7 +397,7 @@ router.get('/profile', async (req, res) => {
 });
 
 /**
- * 3.5 Silent Token Refresh — issues a fresh 30d JWT for any valid (non-expired) existing token
+ * 3.5 Silent Token Refresh — issues a fresh 7d JWT for any valid (non-expired) existing token
  * Called by the client proactively when the token is close to expiry or on every app startup
  */
 router.post('/refresh', async (req, res) => {
