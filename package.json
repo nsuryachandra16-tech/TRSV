@@ -17,6 +17,8 @@
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/push-notifications": "^8.1.1",
     "@capgo/capacitor-native-biometric": "^8.4.5",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.39.8",
     "autoprefixer": "^10.5.0",
     "express-rate-limit": "^8.5.2",

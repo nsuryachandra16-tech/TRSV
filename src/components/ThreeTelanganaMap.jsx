@@ -1,360 +1,385 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Line, Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { Lock } from 'lucide-react';
+import gsap from 'gsap';
+import mapData from '../assets/telangana.json';
 
-// Scale factor to fit SVG coords (928x875 viewbox) into Three.js space
-const SX = 464; // center X offset
-const SY = 437; // center Y offset
-const SCALE = 0.6; // scale factor
+// Real Telangana geographic bounds
+const MIN_LNG = 77.2366;
+const MAX_LNG = 81.3211;
+const MIN_LAT = 15.8368;
+const MAX_LAT = 19.9169;
+const MAP_SCALE = 12;
 
-function tx(x) { return (x - SX) * SCALE; }
-function ty(y) { return -(y - SY) * SCALE; }
+const projectCoord = (lng, lat) => {
+  const x = ((lng - MIN_LNG) / (MAX_LNG - MIN_LNG) - 0.5) * MAP_SCALE;
+  const z = -((lat - MIN_LAT) / (MAX_LAT - MIN_LAT) - 0.5) * MAP_SCALE;
+  return new THREE.Vector3(x, 0, z);
+};
 
-// Build a Three.js Shape from a flat array of [x,y] pairs
-function pointsToShape(pts) {
-  const shape = new THREE.Shape();
-  if (!pts.length) return shape;
-  shape.moveTo(tx(pts[0][0]), ty(pts[0][1]));
-  for (let i = 1; i < pts.length; i++) {
-    shape.lineTo(tx(pts[i][0]), ty(pts[i][1]));
+const generateNodes = (coords, count = 7) => {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  coords.forEach(pt => {
+    if (pt.x < minX) minX = pt.x;
+    if (pt.x > maxX) maxX = pt.x;
+    if (pt.z < minZ) minZ = pt.z;
+    if (pt.z > maxZ) maxZ = pt.z;
+  });
+  const cx = (minX + maxX) / 2;
+  const cz = (minZ + maxZ) / 2;
+  const nodes = [{ x: cx, z: cz, isCenter: true }];
+  for (let i = 0; i < count - 1; i++) {
+    const angle = (i / (count - 1)) * Math.PI * 2 + Math.random() * 0.5;
+    nodes.push({
+      x: cx + Math.cos(angle) * (maxX - minX) * (0.2 + Math.random() * 0.22),
+      z: cz + Math.sin(angle) * (maxZ - minZ) * (0.2 + Math.random() * 0.22),
+      isCenter: false
+    });
   }
-  shape.closePath();
-  return shape;
-}
+  return nodes;
+};
 
-// Real simplified district outlines extracted from t.svg
-// Each entry is a polygon approximation of the actual geography
-const DISTRICT_DATA = [
-  {
-    id: 'hyderabad', name: 'Hyderabad', active: true,
-    pts: [[284,557],[290,535],[300,530],[310,528],[315,535],[314,550],[308,560],[296,563],[284,557]]
-  },
-  {
-    id: 'ranga_reddy', name: 'Ranga Reddy', active: false,
-    pts: [[200,620],[230,580],[260,570],[290,575],[310,600],[300,650],[270,680],[235,675],[200,650],[190,635],[200,620]]
-  },
-  {
-    id: 'medchal', name: 'Medchal', active: false,
-    pts: [[250,480],[300,470],[330,480],[340,510],[320,545],[290,548],[265,535],[245,510],[250,480]]
-  },
-  {
-    id: 'sangareddy', name: 'Sangareddy', active: false,
-    pts: [[130,480],[160,440],[210,430],[240,440],[242,470],[220,510],[180,525],[145,515],[125,495],[130,480]]
-  },
-  {
-    id: 'medak', name: 'Medak', active: false,
-    pts: [[170,420],[210,390],[250,395],[265,420],[255,455],[225,470],[190,465],[165,445],[170,420]]
-  },
-  {
-    id: 'kamareddy', name: 'Kamareddy', active: false,
-    pts: [[150,320],[200,285],[250,290],[280,315],[275,355],[250,390],[210,395],[165,380],[145,350],[150,320]]
-  },
-  {
-    id: 'nizamabad', name: 'Nizamabad', active: false,
-    pts: [[130,240],[175,210],[220,215],[255,235],[250,275],[220,310],[180,320],[140,300],[120,270],[130,240]]
-  },
-  {
-    id: 'nirmal', name: 'Nirmal', active: false,
-    pts: [[180,170],[230,145],[280,150],[310,175],[295,220],[260,240],[215,240],[175,215],[165,190],[180,170]]
-  },
-  {
-    id: 'adilabad', name: 'Adilabad', active: false,
-    pts: [[200,110],[260,80],[330,85],[385,110],[375,155],[335,180],[280,185],[225,165],[195,140],[200,110]]
-  },
-  {
-    id: 'mancherial', name: 'Mancherial', active: false,
-    pts: [[420,150],[480,120],[540,130],[570,165],[555,210],[510,235],[460,225],[425,195],[415,170],[420,150]]
-  },
-  {
-    id: 'komaram_bheem', name: 'Komaram Bheem', active: false,
-    pts: [[370,100],[430,70],[510,80],[550,115],[525,165],[475,185],[420,175],[380,145],[365,120],[370,100]]
-  },
-  {
-    id: 'peddapalli', name: 'Peddapalli', active: false,
-    pts: [[480,270],[520,245],[570,250],[595,280],[575,320],[540,340],[500,330],[475,305],[480,270]]
-  },
-  {
-    id: 'jayashankar', name: 'Jayashankar', active: false,
-    pts: [[580,320],[640,290],[700,305],[720,345],[695,400],[650,420],[600,405],[575,370],[580,320]]
-  },
-  {
-    id: 'karimnagar', name: 'Karimnagar', active: false,
-    pts: [[390,280],[440,255],[490,265],[510,295],[495,335],[460,355],[415,345],[385,315],[390,280]]
-  },
-  {
-    id: 'rajanna', name: 'Rajanna Sircilla', active: false,
-    pts: [[340,280],[390,255],[420,270],[425,305],[400,335],[365,340],[335,315],[330,290],[340,280]]
-  },
-  {
-    id: 'jagtial', name: 'Jagtial', active: false,
-    pts: [[330,220],[380,195],[420,205],[435,235],[415,270],[380,285],[340,272],[320,248],[330,220]]
-  },
-  {
-    id: 'siddipet', name: 'Siddipet', active: false,
-    pts: [[255,380],[300,355],[345,360],[370,385],[360,425],[325,445],[280,440],[255,415],[250,395],[255,380]]
-  },
-  {
-    id: 'yadadri', name: 'Yadadri', active: false,
-    pts: [[320,540],[365,510],[410,515],[430,545],[415,590],[380,610],[340,605],[315,575],[320,540]]
-  },
-  {
-    id: 'nalgonda', name: 'Nalgonda', active: false,
-    pts: [[340,610],[390,575],[450,580],[480,615],[465,680],[425,715],[375,710],[340,670],[330,640],[340,610]]
-  },
-  {
-    id: 'suryapet', name: 'Suryapet', active: false,
-    pts: [[460,620],[530,590],[590,600],[610,640],[590,700],[545,720],[490,710],[455,670],[450,645],[460,620]]
-  },
-  {
-    id: 'khammam', name: 'Khammam', active: false,
-    pts: [[620,580],[690,545],[760,560],[790,610],[760,680],[710,710],[645,695],[615,645],[620,580]]
-  },
-  {
-    id: 'bhadradri', name: 'Bhadradri', active: false,
-    pts: [[750,490],[820,460],[870,480],[885,530],[865,600],[815,630],[755,615],[725,560],[750,490]]
-  },
-  {
-    id: 'warangal_u', name: 'Warangal Urban', active: false,
-    pts: [[500,410],[540,390],[575,400],[585,430],[565,460],[530,470],[495,455],[485,430],[500,410]]
-  },
-  {
-    id: 'warangal_r', name: 'Warangal Rural', active: false,
-    pts: [[540,450],[590,425],[635,440],[650,475],[625,515],[580,525],[540,505],[525,475],[540,450]]
-  },
-  {
-    id: 'mahabubabad', name: 'Mahabubabad', active: false,
-    pts: [[575,500],[630,475],[680,490],[695,530],[670,575],[625,590],[575,570],[555,535],[575,500]]
-  },
-  {
-    id: 'jangaon', name: 'Jangaon', active: false,
-    pts: [[450,430],[495,405],[530,415],[540,445],[515,480],[475,490],[445,470],[435,450],[450,430]]
-  },
-  {
-    id: 'vikarabad', name: 'Vikarabad', active: false,
-    pts: [[80,580],[130,545],[180,550],[210,580],[200,630],[160,660],[110,650],[75,615],[80,580]]
-  },
-  {
-    id: 'narayanpet', name: 'Narayanpet', active: false,
-    pts: [[100,680],[155,650],[210,660],[230,695],[215,740],[170,760],[115,745],[90,710],[100,680]]
-  },
-  {
-    id: 'nagarkurnool', name: 'Nagarkurnool', active: false,
-    pts: [[220,720],[280,690],[340,700],[365,735],[345,790],[295,815],[240,805],[210,765],[220,720]]
-  },
-  {
-    id: 'wanaparthy', name: 'Wanaparthy', active: false,
-    pts: [[165,760],[220,730],[270,740],[290,775],[270,820],[225,840],[175,825],[150,790],[165,760]]
-  },
-  {
-    id: 'gadwal', name: 'Gadwal', active: false,
-    pts: [[105,800],[165,770],[210,780],[225,815],[205,855],[160,870],[110,850],[90,820],[105,800]]
-  },
-  {
-    id: 'mahbubnagar', name: 'Mahbubnagar', active: false,
-    pts: [[80,660],[135,625],[195,635],[230,670],[215,720],[170,745],[110,730],[70,695],[80,660]]
-  }
-];
+// Hyderabad district name variants in GeoJSON
+const HYDERABAD_NAMES = ['hyderabad', 'medchal', 'ranga reddy', 'rangareddy'];
+const isGHDistrict = (name = '') => HYDERABAD_NAMES.some(n => name.toLowerCase().includes(n));
 
-// GH constituency approximate polygons (scaled within Hyderabad zone)
-const GH_DATA = [
-  { id: 'Secunderabad', name: 'Secunderabad', pts: [[290,510],[310,505],[325,515],[322,535],[305,540],[290,530],[290,510]] },
-  { id: 'Nampally', name: 'Nampally', pts: [[275,535],[295,530],[308,540],[305,558],[288,562],[272,550],[275,535]] },
-  { id: 'Charminar', name: 'Charminar', pts: [[280,558],[305,555],[312,570],[305,585],[282,582],[272,568],[280,558]] },
-  { id: 'JubileeHills', name: 'Jubilee Hills', pts: [[260,525],[280,518],[292,530],[285,548],[264,548],[254,538],[260,525]] },
-  { id: 'Khairatabad', name: 'Khairatabad', pts: [[270,505],[290,500],[305,510],[302,528],[283,530],[268,520],[270,505]] },
-  { id: 'Amberpet', name: 'Amberpet', pts: [[300,528],[318,522],[330,535],[325,552],[308,556],[298,542],[300,528]] },
-  { id: 'Musheerabad', name: 'Musheerabad', pts: [[288,495],[308,490],[320,502],[316,518],[298,520],[285,508],[288,495]] },
-  { id: 'LBNagar', name: 'L.B. Nagar', pts: [[295,565],[315,560],[325,572],[318,590],[298,592],[288,575],[295,565]] }
-];
-
-export default function ThreeTelanganaMap({ mapLevel, setMapLevel, selectedConstituency, setSelectedConstituency, constituencyList, onHoverRegion }) {
-  const mountRef = useRef(null);
-  const [webGlSupported, setWebGlSupported] = useState(true);
+// Camera controller with GSAP cinematic movements
+function CameraController({ phase }) {
+  const { camera, size } = useThree();
+  const isMobile = size.width < 768;
+  const animated = useRef(false);
 
   useEffect(() => {
-    const container = mountRef.current;
-    if (!container) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (!gl) { setWebGlSupported(false); return; }
-    } catch (e) { setWebGlSupported(false); return; }
-
-    const width = container.clientWidth || 500;
-    const height = container.clientHeight || 450;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, width / height, 1, 2000);
-    camera.position.set(0, 0, 380);
+    camera.position.set(0, isMobile ? 16 : 11, isMobile ? 18 : 13);
     camera.lookAt(0, 0, 0);
+  }, [camera, isMobile]);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-
-    const mapGroup = new THREE.Group();
-    scene.add(mapGroup);
-
-    const stateGroup = new THREE.Group();
-    const ghGroup = new THREE.Group();
-    mapGroup.add(stateGroup);
-    mapGroup.add(ghGroup);
-
-    stateGroup.visible = mapLevel === 'state';
-    ghGroup.visible = mapLevel !== 'state';
-
-    // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-    const dir = new THREE.DirectionalLight(0xffffff, 3.5);
-    dir.position.set(150, 200, 300);
-    scene.add(dir);
-    const pt = new THREE.PointLight(0x22d3ee, 6, 300);
-    pt.position.set(0, 50, 80);
-    scene.add(pt);
-
-    const extOpts = { depth: 10, bevelEnabled: true, bevelSegments: 2, bevelSize: 0.8, bevelThickness: 0.8 };
-
-    const activeFace = new THREE.MeshPhysicalMaterial({ color: 0x0ea5e9, metalness: 0.1, roughness: 0.2, emissive: 0x0369a1, emissiveIntensity: 0.2 });
-    const activeSide = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95, roughness: 0.15 });
-    const lockedFace = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.5, transparent: true, opacity: 0.75 });
-    const lockedSide = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.5, transparent: true, opacity: 0.7 });
-    const glowLine = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.9 });
-    const dimLine = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.5 });
-
-    // Build state districts
-    DISTRICT_DATA.forEach(d => {
-      const shape = pointsToShape(d.pts);
-      const geom = new THREE.ExtrudeGeometry(shape, extOpts);
-      const mesh = new THREE.Mesh(geom, [d.active ? activeFace : lockedFace, d.active ? activeSide : lockedSide]);
-      mesh.userData = { id: d.id, name: d.name, active: d.active, type: 'district' };
-      stateGroup.add(mesh);
-
-      const pts3d = d.pts.map(p => new THREE.Vector3(tx(p[0]), ty(p[1]), 11));
-      pts3d.push(pts3d[0]);
-      const lg = new THREE.BufferGeometry().setFromPoints(pts3d);
-      stateGroup.add(new THREE.Line(lg, d.active ? glowLine : dimLine));
-    });
-
-    // Build GH constituencies
-    GH_DATA.forEach(c => {
-      const isSelected = selectedConstituency?.constituency_name?.toLowerCase().includes(c.name.toLowerCase());
-      const faceMat = new THREE.MeshPhysicalMaterial({ color: isSelected ? 0x22d3ee : 0x0f766e, metalness: 0.2, roughness: 0.1, emissive: isSelected ? 0x0ea5e9 : 0x134e4a, emissiveIntensity: 0.3 });
-      const sideMat = new THREE.MeshStandardMaterial({ color: isSelected ? 0x0ea5e9 : 0x115e59, metalness: 0.9, roughness: 0.2 });
-      const shape = pointsToShape(c.pts);
-      const geom = new THREE.ExtrudeGeometry(shape, extOpts);
-      const mesh = new THREE.Mesh(geom, [faceMat, sideMat]);
-      mesh.userData = { id: c.id, name: c.name, active: true, type: 'constituency' };
-      ghGroup.add(mesh);
-
-      const pts3d = c.pts.map(p => new THREE.Vector3(tx(p[0]), ty(p[1]), 11));
-      pts3d.push(pts3d[0]);
-      const lg = new THREE.BufferGeometry().setFromPoints(pts3d);
-      ghGroup.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: isSelected ? 0x38bdf8 : 0x0ea5e9, transparent: true, opacity: isSelected ? 1 : 0.6 })));
-    });
-
-    // Gold particles
-    const pGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(120);
-    for (let i = 0; i < 120; i += 3) {
-      pPos[i] = (Math.random() - 0.5) * 320;
-      pPos[i+1] = (Math.random() - 0.5) * 280;
-      pPos[i+2] = Math.random() * 60;
+  useEffect(() => {
+    if (phase === 'reveal') {
+      gsap.to(camera.position, { x: 0, y: isMobile ? 12.5 : 8.5, z: isMobile ? 13.5 : 9.5, duration: 3, ease: 'power2.out' });
     }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 2.5, color: 0xf59e0b, transparent: true, opacity: 0.55 }));
-    scene.add(particles);
+    if (phase === 'zoom' && !animated.current) {
+      animated.current = true;
+      const tl = gsap.timeline();
+      tl.to(camera.position, { x: -0.8, y: isMobile ? 2.2 : 1.5, z: isMobile ? 3.2 : 2.2, duration: 2.2, ease: 'power3.inOut', onUpdate: () => camera.lookAt(-0.5, 0, -0.5) });
+      tl.to(camera.position, { x: 0.8, y: isMobile ? 2.5 : 1.8, z: isMobile ? 3 : 2, duration: 1.5, ease: 'power1.inOut', onUpdate: () => camera.lookAt(0, 0, -0.2) });
+      tl.to(camera.position, { x: 0, y: isMobile ? 9.8 : 6.8, z: isMobile ? 10.8 : 7.8, duration: 2.8, ease: 'expo.out', onUpdate: () => camera.lookAt(0, -0.5, -0.2) });
+    }
+  }, [phase, camera, isMobile]);
 
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    let hoveredMesh = null;
-    let tX = 0, tY = 0, cX = 0, cY = 0;
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    const fz = isMobile ? 10.8 : 7.8;
+    if (phase === 'idle') {
+      camera.position.x += Math.sin(t * 0.4) * 0.0012;
+      camera.position.z += Math.cos(t * 0.3) * 0.0012;
+    } else if (phase === 'float') {
+      camera.position.x = Math.sin(t * 0.15) * 1.0;
+      camera.position.z = fz + Math.cos(t * 0.15) * 0.3;
+      camera.lookAt(0, -0.5, -0.2);
+    }
+  });
 
-    const onMove = e => {
-      const r = container.getBoundingClientRect();
-      const x = e.clientX - r.left;
-      const y = e.clientY - r.top;
-      tX = -((y / r.height) - 0.5) * 0.4;
-      tY = ((x / r.width) - 0.5) * 0.4;
-      mouse.x = (x / r.width) * 2 - 1;
-      mouse.y = -(y / r.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const group = mapLevel === 'state' ? stateGroup : ghGroup;
-      const hits = raycaster.intersectObjects(group.children);
-      if (hits.length > 0 && hits[0].object.userData.name) {
-        const m = hits[0].object;
-        if (m !== hoveredMesh) {
-          hoveredMesh = m;
-          onHoverRegion({ id: m.userData.id, name: m.userData.name, active: m.userData.active, x, y });
-        }
-      } else if (hoveredMesh) {
-        hoveredMesh = null;
-        onHoverRegion(null);
+  return null;
+}
+
+// Scan beam
+function ScanBeam({ x }) {
+  return (
+    <group position={[x, 0.16, 0]}>
+      <Line points={[new THREE.Vector3(0, 0, -6), new THREE.Vector3(0, 0, 6)]} color="#ffffff" lineWidth={3.5} transparent opacity={0.8} />
+      <Line points={[new THREE.Vector3(0, 0, -6), new THREE.Vector3(0, 0, 6)]} color="#dfcba5" lineWidth={8} transparent opacity={0.3} />
+    </group>
+  );
+}
+
+// Individual district block
+function District({ feature, index, phase, scanX, showScan, onClickGH, mapLevel }) {
+  const meshRef = useRef();
+  const [drawn, setDrawn] = useState(0);
+  const [nodeScale, setNodeScale] = useState(0);
+  const [hovered, setHovered] = useState(false);
+
+  const { shape, borderPoints, districtName } = useMemo(() => {
+    const geo = feature.geometry;
+    let poly = [];
+    if (geo.type === 'Polygon') poly = geo.coordinates[0];
+    else if (geo.type === 'MultiPolygon') {
+      geo.coordinates.forEach(p => { if (p[0].length > poly.length) poly = p[0]; });
+    }
+    const projected = poly.map(pt => projectCoord(pt[0], pt[1]));
+    const s = new THREE.Shape();
+    if (projected.length > 0) {
+      s.moveTo(projected[0].x, -projected[0].z);
+      projected.slice(1).forEach(pt => s.lineTo(pt.x, -pt.z));
+      s.closePath();
+    }
+    return { shape: s, borderPoints: projected, districtName: feature.properties?.name || '' };
+  }, [feature]);
+
+  const nodes = useMemo(() => borderPoints.length ? generateNodes(borderPoints, 7) : [], [borderPoints]);
+
+  const activeBorder = useMemo(() => {
+    if (drawn >= 0.99) return borderPoints;
+    return borderPoints.slice(0, Math.max(2, Math.floor(borderPoints.length * drawn)));
+  }, [borderPoints, drawn]);
+
+  const isGH = isGHDistrict(districtName);
+
+  useEffect(() => {
+    if (phase === 'reveal' || phase === 'scan' || phase === 'zoom' || phase === 'float') {
+      const delay = 0.5 + index * 0.16;
+      gsap.to({ v: 0 }, { v: 1, duration: 1.8, delay, ease: 'power2.inOut', onUpdate: function () { setDrawn(this.targets()[0].v); } });
+      if (meshRef.current) {
+        gsap.to(meshRef.current.position, { y: 0, duration: 2.2, delay: delay + 0.6, ease: 'power3.out' });
+        gsap.to(meshRef.current.scale, { x: 1, y: 1, z: 1, duration: 2.2, delay: delay + 0.6, ease: 'power3.out' });
       }
-    };
+      gsap.to({ v: 0 }, { v: 1, duration: 1.2, delay: delay + 1.2, ease: 'elastic.out(1, 0.6)', onUpdate: function () { setNodeScale(this.targets()[0].v); } });
+    }
+  }, [phase, index]);
 
-    const onLeave = () => { tX = 0; tY = 0; hoveredMesh = null; onHoverRegion(null); };
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const dist = Math.abs((borderPoints[0]?.x || 0) - scanX);
+    if (showScan && dist < 1.8) {
+      meshRef.current.material.emissiveIntensity = (1 - dist / 1.8) * 0.65;
+      meshRef.current.material.color.setHex(0xfff8e7);
+    } else if (hovered) {
+      meshRef.current.material.emissiveIntensity = isGH ? 0.6 : 0.45;
+      meshRef.current.material.color.setHex(isGH ? 0xaef3ff : 0xfff8e7);
+    } else {
+      meshRef.current.material.emissiveIntensity = isGH ? 0.12 : 0.05;
+      meshRef.current.material.color.setHex(isGH ? 0x7dd3fc : 0xdfcba5);
+    }
+  });
 
-    const onClick = () => {
-      if (!hoveredMesh) return;
-      const d = hoveredMesh.userData;
-      if (d.type === 'district' && d.id === 'hyderabad') { setMapLevel('gh'); onHoverRegion(null); }
-      else if (d.type === 'constituency') {
-        const m = constituencyList.find(c => c.constituency_name.toLowerCase().includes(d.name.toLowerCase()));
-        if (m) {
-          setSelectedConstituency(m);
-          document.getElementById(`constituency-card-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    };
+  const extrudeSettings = useMemo(() => ({
+    depth: isGH ? 0.28 : 0.15,
+    bevelEnabled: true, bevelSegments: 4, steps: 1, bevelSize: -0.008, bevelThickness: 0.01
+  }), [isGH]);
 
-    container.addEventListener('mousemove', onMove);
-    container.addEventListener('mouseleave', onLeave);
-    container.addEventListener('click', onClick);
+  return (
+    <group>
+      <mesh
+        ref={meshRef}
+        position={[0, -2.5, 0]}
+        scale={[1, 1, 1]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        castShadow receiveShadow
+        onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+        onClick={e => { e.stopPropagation(); if (isGH && mapLevel === 'state') onClickGH(); }}
+      >
+        <extrudeGeometry args={[shape, extrudeSettings]} />
+        <meshPhysicalMaterial
+          color={isGH ? '#7dd3fc' : '#dfcba5'}
+          emissive={isGH ? '#0ea5e9' : '#c5a059'}
+          emissiveIntensity={isGH ? 0.12 : 0.05}
+          transmission={isGH ? 0.5 : 0.65}
+          opacity={isGH ? 0.92 : 0.8}
+          transparent
+          roughness={isGH ? 0.08 : 0.12}
+          metalness={isGH ? 0.2 : 0.15}
+          clearcoat={1.0}
+          clearcoatRoughness={0.08}
+          ior={1.48}
+          thickness={isGH ? 0.6 : 0.4}
+        />
+      </mesh>
 
-    const clock = new THREE.Clock();
-    let animId;
-    const animate = () => {
-      const t = clock.getElapsedTime();
-      cX += (tX - cX) * 0.07;
-      cY += (tY - cY) * 0.07;
-      mapGroup.rotation.x = cX;
-      mapGroup.rotation.y = cY;
-      mapGroup.position.y = Math.sin(t * 0.8) * 4;
-      particles.rotation.z = t * 0.03;
-      renderer.render(scene, camera);
-      animId = requestAnimationFrame(animate);
-    };
-    animate();
+      {activeBorder.length > 1 && (
+        <Line
+          position={[0, 0.16, 0]}
+          points={activeBorder}
+          color={isGH ? '#38bdf8' : '#c5a059'}
+          lineWidth={isGH ? 3 : 2.2}
+          transparent opacity={0.9}
+        />
+      )}
 
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) {
-        const { width: w, height: h } = e.contentRect;
-        if (w && h) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); }
-      }
-    });
-    ro.observe(container);
+      {nodeScale > 0.01 && (
+        <group>
+          {nodes.map((nd, i) => (
+            <group key={i} position={[nd.x, 0.17, nd.z]} scale={[nodeScale, nodeScale, nodeScale]}>
+              <mesh><sphereGeometry args={[nd.isCenter ? 0.07 : 0.045, 16, 16]} /><meshBasicMaterial color={nd.isCenter ? (isGH ? '#38bdf8' : '#ffffff') : '#dfcba5'} /></mesh>
+              <mesh><sphereGeometry args={[nd.isCenter ? 0.12 : 0.08, 16, 16]} /><meshBasicMaterial color={isGH ? '#0ea5e9' : '#c5a059'} transparent opacity={0.35} /></mesh>
+            </group>
+          ))}
+          {nodes.slice(1).map((nd, i) => (
+            <Line key={`w${i}`} position={[0, 0.16, 0]}
+              points={[new THREE.Vector3(nodes[0].x, 0, nodes[0].z), new THREE.Vector3(nd.x, 0, nd.z)]}
+              color={isGH ? '#38bdf8' : '#dfcba5'} lineWidth={0.6} transparent opacity={0.25 * nodeScale}
+            />
+          ))}
+        </group>
+      )}
 
-    return () => {
-      cancelAnimationFrame(animId);
-      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
-      container.removeEventListener('mousemove', onMove);
-      container.removeEventListener('mouseleave', onLeave);
-      container.removeEventListener('click', onClick);
-      ro.disconnect();
-      renderer.dispose();
-    };
-  }, [mapLevel, selectedConstituency, constituencyList]);
+      {hovered && nodeScale > 0.5 && (
+        <Html position={[nodes[0]?.x || 0, 0.3, nodes[0]?.z || 0]} center distanceFactor={11} className="pointer-events-none select-none">
+          <div style={{ backgroundColor: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(8px)', border: `1px solid ${isGH ? 'rgba(56,189,248,0.7)' : 'rgba(197,160,89,0.6)'}`, color: '#fff', padding: '4px 12px', borderRadius: '6px', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: 'monospace', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+            {districtName}{isGH && mapLevel === 'state' ? ' ★ CLICK TO ZOOM' : ''}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
 
-  if (!webGlSupported) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] border border-dashed border-slate-700 rounded-2xl text-slate-400">
-        <Lock className="w-8 h-8 text-rose-500 mb-2" />
-        WebGL not supported in this browser.
-      </div>
-    );
-  }
+// GH constituency sub-view using filtered features
+function GHConstituencyView({ constituencyList, selectedConstituency, onSelectConstituency }) {
+  // We reuse the same district blocks but zoomed in on GH area features only
+  const ghFeatures = useMemo(() => {
+    return mapData.features.filter(f => isGHDistrict(f.properties?.name || ''));
+  }, []);
 
-  return <div ref={mountRef} className="w-full h-full min-h-[420px] relative overflow-hidden" />;
+  return (
+    <group>
+      {ghFeatures.map((feat, i) => {
+        const name = feat.properties?.name || '';
+        const matched = constituencyList.find(c => c.constituency_name?.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(c.constituency_name?.toLowerCase()));
+        const isSelected = matched && selectedConstituency?.id === matched?.id;
+        return (
+          <GHBlock
+            key={i}
+            feature={feat}
+            index={i}
+            isSelected={isSelected}
+            name={name}
+            onSelect={() => { if (matched) { onSelectConstituency(matched); document.getElementById(`constituency-card-${matched.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
+function GHBlock({ feature, index, isSelected, name, onSelect }) {
+  const meshRef = useRef();
+  const [hovered, setHovered] = useState(false);
+  const [risen, setRisen] = useState(false);
+
+  const { shape, borderPoints } = useMemo(() => {
+    const geo = feature.geometry;
+    let poly = [];
+    if (geo.type === 'Polygon') poly = geo.coordinates[0];
+    else if (geo.type === 'MultiPolygon') { geo.coordinates.forEach(p => { if (p[0].length > poly.length) poly = p[0]; }); }
+    const projected = poly.map(pt => projectCoord(pt[0], pt[1]));
+    const s = new THREE.Shape();
+    if (projected.length > 0) {
+      s.moveTo(projected[0].x, -projected[0].z);
+      projected.slice(1).forEach(pt => s.lineTo(pt.x, -pt.z));
+      s.closePath();
+    }
+    return { shape: s, borderPoints: projected };
+  }, [feature]);
+
+  const nodes = useMemo(() => borderPoints.length ? generateNodes(borderPoints, 5) : [], [borderPoints]);
+
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.position.y = -2.5;
+      gsap.to(meshRef.current.position, { y: 0, duration: 1.8, delay: index * 0.12, ease: 'power3.out', onComplete: () => setRisen(true) });
+    }
+  }, [index]);
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+    if (isSelected) { meshRef.current.material.emissiveIntensity = 0.5; meshRef.current.material.color.setHex(0x22d3ee); }
+    else if (hovered) { meshRef.current.material.emissiveIntensity = 0.35; meshRef.current.material.color.setHex(0x7dd3fc); }
+    else { meshRef.current.material.emissiveIntensity = 0.08; meshRef.current.material.color.setHex(0x0f766e); }
+  });
+
+  return (
+    <group>
+      <mesh ref={meshRef} position={[0, -2.5, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow receiveShadow
+        onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+        onClick={e => { e.stopPropagation(); onSelect(); }}
+      >
+        <extrudeGeometry args={[shape, { depth: 0.22, bevelEnabled: true, bevelSegments: 3, bevelSize: -0.006, bevelThickness: 0.01 }]} />
+        <meshPhysicalMaterial color="#0f766e" emissive="#0ea5e9" emissiveIntensity={0.08} transmission={0.45} opacity={0.9} transparent roughness={0.1} metalness={0.2} clearcoat={1} ior={1.48} thickness={0.5} />
+      </mesh>
+      {borderPoints.length > 1 && risen && (
+        <Line position={[0, 0.17, 0]} points={borderPoints} color={isSelected ? '#38bdf8' : '#0ea5e9'} lineWidth={isSelected ? 3 : 1.8} transparent opacity={0.9} />
+      )}
+      {hovered && nodes[0] && (
+        <Html position={[nodes[0].x, 0.3, nodes[0].z]} center distanceFactor={11} className="pointer-events-none select-none">
+          <div style={{ backgroundColor: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(8px)', border: '1px solid rgba(56,189,248,0.7)', color: '#fff', padding: '4px 12px', borderRadius: '6px', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: 'monospace', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            {name}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// Main export
+export default function ThreeTelanganaMap({ mapLevel, setMapLevel, selectedConstituency, setSelectedConstituency, constituencyList, onHoverRegion }) {
+  const [phase, setPhase] = useState('idle');
+  const [scanX, setScanX] = useState(-10);
+  const [showScan, setShowScan] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase('reveal'), 400);
+    const t2 = setTimeout(() => setPhase('scan'), 4000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  useEffect(() => {
+    if (phase === 'scan') {
+      setShowScan(true);
+      gsap.to({ x: -6.5 }, {
+        x: 6.5, duration: 2.2, ease: 'power1.inOut',
+        onUpdate: function () { setScanX(this.targets()[0].x); },
+        onComplete: () => { setShowScan(false); setPhase('zoom'); setTimeout(() => setPhase('float'), 6500); }
+      });
+    }
+  }, [phase]);
+
+  const handleClickGH = () => {
+    setMapLevel('gh');
+    onHoverRegion(null);
+  };
+
+  return (
+    <div className="w-full h-full min-h-[420px] relative">
+      <Canvas shadows gl={{ antialias: true, alpha: true }} camera={{ fov: 45, near: 0.1, far: 100 }}>
+        <color attach="background" args={[null]} />
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[5, 8, 5]} intensity={3.5} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0001} />
+        <directionalLight position={[-5, 4, -5]} intensity={1.2} color="#dfcba5" />
+        <spotLight position={[0, 10, 2]} intensity={6} angle={Math.PI / 4} penumbra={0.6} color="#ffffff" castShadow />
+        <pointLight position={[scanX, 1.2, 0]} intensity={showScan ? 35 : 0} distance={4} color="#ffffff" />
+
+        {mapLevel === 'state' && (
+          <group position={[0, -0.4, 0]}>
+            {mapData.features.map((feat, i) => (
+              <District key={i} feature={feat} index={i} phase={phase} scanX={scanX} showScan={showScan} onClickGH={handleClickGH} mapLevel={mapLevel} />
+            ))}
+            {showScan && <ScanBeam x={scanX} />}
+          </group>
+        )}
+
+        {mapLevel === 'gh' && (
+          <group position={[0, -0.4, 0]}>
+            <GHConstituencyView
+              constituencyList={constituencyList}
+              selectedConstituency={selectedConstituency}
+              onSelectConstituency={setSelectedConstituency}
+            />
+          </group>
+        )}
+
+        <CameraController phase={phase} />
+        {mapLevel === 'gh' && <OrbitControls enablePan={false} minDistance={3} maxDistance={18} />}
+      </Canvas>
+
+      {mapLevel === 'state' && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest text-amber-400/70 pointer-events-none">
+          Click Greater Hyderabad to zoom in
+        </div>
+      )}
+    </div>
+  );
 }
