@@ -248,7 +248,7 @@ export default function ThreeTelanganaMap({
   }, [setMapLevel, onHoverRegion]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: 400, position: 'relative' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* Back button overlay */}
       {mapLevel === 'gh' && (
         <button

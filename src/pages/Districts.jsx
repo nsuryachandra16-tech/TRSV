@@ -226,7 +226,7 @@ export default function Districts() {
             </div>
 
             {/* Three.js Container Canvas */}
-            <div className="flex-1 w-full min-h-[450px] relative bg-slate-950/20 dark:bg-slate-950/40 rounded-2xl border border-slate-200/20 dark:border-slate-900/50 shadow-inner overflow-hidden">
+            <div className="w-full h-[450px] relative bg-slate-950/20 dark:bg-slate-950/40 rounded-2xl border border-slate-200/20 dark:border-slate-900/50 shadow-inner overflow-hidden">
               <ThreeTelanganaMap
                 mapLevel={mapLevel}
                 setMapLevel={setMapLevel}
