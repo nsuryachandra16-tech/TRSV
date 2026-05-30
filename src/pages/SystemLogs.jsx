@@ -116,9 +116,9 @@ export default function SystemLogs() {
     }
     if (normalType.includes('LOGIN') || normalType.includes('COMMENT') || normalType.includes('UPDATE_STATUS')) {
       return {
-        bg: 'bg-cyan-500/10 dark:bg-cyan-500/15',
-        text: 'text-cyan-600 dark:text-cyan-400',
-        border: 'border-cyan-500/20'
+        bg: 'bg-yellow-500/10 dark:bg-yellow-500/15',
+        text: 'text-yellow-600 dark:text-yellow-500',
+        border: 'border-yellow-500/25'
       };
     }
     return {
@@ -141,7 +141,7 @@ export default function SystemLogs() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2.5">
-            <Terminal className="w-6 h-6 text-cyan-500 animate-pulse" />
+            <Terminal className="w-6 h-6 text-emerald-550 dark:text-emerald-400 animate-pulse" />
             System Security Ledger
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-450 mt-1">
@@ -156,7 +156,7 @@ export default function SystemLogs() {
             className={`p-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 ${
               isPaused 
                 ? 'bg-rose-500/15 text-rose-500 hover:bg-rose-500/20' 
-                : 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/20'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
             }`}
           >
             {isPaused ? (
@@ -206,7 +206,7 @@ export default function SystemLogs() {
         <div className="glass-panel-light dark:glass-panel-dark p-4 rounded-2xl border border-slate-200/50 dark:border-slate-850">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Unique Categories</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{activityTypes.length}</span>
+            <span className="text-2xl font-black text-yellow-600 dark:text-yellow-500 font-mono">{activityTypes.length}</span>
             <span className="text-xs text-slate-450 dark:text-slate-500">active</span>
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function SystemLogs() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search details, actor names, emails, or action types..."
-            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
+            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
           />
         </div>
         
@@ -245,7 +245,7 @@ export default function SystemLogs() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-sm font-medium text-slate-800 dark:text-white outline-none cursor-pointer focus:border-cyan-500/50 transition-all appearance-none"
+            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-sm font-medium text-slate-800 dark:text-white outline-none cursor-pointer focus:border-emerald-500/50 transition-all appearance-none"
           >
             <option value="">All Action Types</option>
             {activityTypes.map((type) => (
@@ -260,7 +260,7 @@ export default function SystemLogs() {
           <select
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
-            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-sm font-medium text-slate-800 dark:text-white outline-none cursor-pointer focus:border-cyan-500/50 transition-all appearance-none"
+            className="w-full bg-slate-100/50 dark:bg-slate-900/40 border border-slate-250 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-sm font-medium text-slate-800 dark:text-white outline-none cursor-pointer focus:border-emerald-500/50 transition-all appearance-none"
           >
             <option value={50}>Limit: 50</option>
             <option value={100}>Limit: 100</option>
@@ -339,7 +339,7 @@ export default function SystemLogs() {
                               <span className="text-[10px] text-slate-450 dark:text-slate-450 truncate">
                                 {log.email || 'admin@trsv.gov.in'}
                               </span>
-                              <span className="text-[9px] font-black text-cyan-600 dark:text-cyan-400 tracking-wider mt-0.5 uppercase">
+                              <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-wider mt-0.5 uppercase">
                                 {formatRole(log.role)}
                               </span>
                             </div>
