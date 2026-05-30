@@ -300,3 +300,8 @@ html.dark .glass-card-border-dark:hover {
 .animate-scan-line {
   animation: scan-line 3s linear infinite;
 }
+
+/* Scroll containment and touch handling for mobile scrollable boxes */
+.custom-sidebar-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}

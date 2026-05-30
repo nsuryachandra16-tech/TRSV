@@ -25,6 +25,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import FloatingParticles from '../components/FloatingParticles';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { App } from '@capacitor/app';
+import { io } from 'socket.io-client';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +39,7 @@ export default function DashboardLayout() {
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const activeLinkRef = useRef(null);
+  const socketRef = useRef(null);
 
   const [toasts, setToasts] = useState([]);
   const prevNotificationsRef = useRef([]);
@@ -94,9 +98,93 @@ export default function DashboardLayout() {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    try {
+      const token = localStorage.getItem('trsv_session_token');
+      await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    const socketUrl = window.Capacitor
+      ? 'https://trsv-union.onrender.com'
+      : (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+    
+    const token = localStorage.getItem('trsv_session_token');
+    if (token) {
+      socketRef.current = io(socketUrl, {
+        transports: ['websocket'],
+        upgrade: false,
+        auth: { token }
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('🔌 [DashboardLayout Socket] Global notification socket connected');
+      });
+
+      socketRef.current.on('new_notification', (notification) => {
+        console.log('🔔 [DashboardLayout Socket] Real-time notification received:', notification);
+        setNotifications(prev => {
+          if (prev.some(p => p.id === notification.id)) return prev;
+          return [notification, ...prev];
+        });
+      });
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 5000);
+
+    // Request permissions for native local notifications and register resume listener if running under Capacitor
+    if (window.Capacitor) {
+      const requestNotificationPermissions = async () => {
+        try {
+          const status = await LocalNotifications.checkPermissions();
+          if (status.display !== 'granted') {
+            await LocalNotifications.requestPermissions();
+          }
+        } catch (e) {
+          console.warn('[DashboardLayout] Failed to check/request notifications permissions:', e);
+        }
+      };
+      requestNotificationPermissions();
+
+      try {
+        const listenerPromise = App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            fetchNotifications();
+          }
+        });
+
+        const actionListenerPromise = LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+          setNotificationsOpen(true);
+          fetchNotifications();
+          handleMarkAllRead();
+        });
+
+        return () => {
+          clearInterval(interval);
+          listenerPromise.then(h => h.remove());
+          actionListenerPromise.then(h => h.remove());
+        };
+      } catch (err) {
+        console.warn('[DashboardLayout] Failed to register app listeners:', err);
+      }
+    }
+
     return () => clearInterval(interval);
   }, []);
 
@@ -112,6 +200,26 @@ export default function DashboardLayout() {
           setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== toastId));
           }, 4500);
+
+          // Schedule a native local push notification on mobile devices
+          if (window.Capacitor) {
+            LocalNotifications.schedule({
+              notifications: [
+                {
+                  id: Math.floor(Math.random() * 100000) + 1,
+                  title: n.title || 'TRSV Alert',
+                  body: n.message,
+                  schedule: { at: new Date(Date.now() + 200) },
+                  sound: null,
+                  attachments: null,
+                  actionTypeId: "",
+                  extra: null
+                }
+              ]
+            }).catch(err => {
+              console.warn('[DashboardLayout] Failed to schedule native notification:', err);
+            });
+          }
         });
       }
     }
@@ -125,18 +233,7 @@ export default function DashboardLayout() {
     }
   }, [pathname]);
 
-  const handleMarkAllRead = async () => {
-    try {
-      const token = localStorage.getItem('trsv_session_token');
-      await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      fetchNotifications();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
 
   const handleToggleRead = async (id, currentRead) => {
     if (currentRead) return;
@@ -372,16 +469,17 @@ export default function DashboardLayout() {
           <>
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
               onClick={() => setSidebarOpen(false)}
-              className="fixed inset-0 bg-black z-30 lg:hidden"
+              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-30 lg:hidden"
             />
             <motion.aside
-              initial={{ x: -320 }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
               className="fixed inset-y-0 left-0 w-80 bg-white dark:bg-slate-950 border-r border-slate-200/60 dark:border-slate-900 z-45 lg:hidden flex flex-col p-4 max-h-screen overflow-hidden shadow-2xl"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 dark:border-slate-900/60">
@@ -499,7 +597,13 @@ export default function DashboardLayout() {
               {/* Notification Bell Dropdown */}
               <div className="relative">
                 <button
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  onClick={() => {
+                    setNotificationsOpen(!notificationsOpen);
+                    if (!notificationsOpen) {
+                      fetchNotifications();
+                      handleMarkAllRead();
+                    }
+                  }}
                   className={`relative p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                     notificationsOpen
                       ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-600 dark:text-cyan-400 shadow-glow-cyan/15'
@@ -524,7 +628,7 @@ export default function DashboardLayout() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 12, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-3.5 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl p-4 text-left z-40"
+                        className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 sm:w-96 mt-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl p-4 text-left z-40"
                       >
                         <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-850 pb-2.5 mb-2.5">
                           <div className="flex items-center gap-2">

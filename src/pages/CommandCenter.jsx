@@ -580,7 +580,7 @@ export default function CommandCenter() {
               </div>
             </div>
             
-            <div className="h-[300px]">
+            <div>
               <RealtimeActivityFeed activities={liveFeeds} />
             </div>
           </div>

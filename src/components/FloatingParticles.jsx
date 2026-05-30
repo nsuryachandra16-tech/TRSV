@@ -2,6 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function FloatingParticles() {
+  // Disable floating particles on native app to maximize performance
+  if (window.Capacitor) {
+    return null;
+  }
+
   const canvasRef = useRef(null);
   const { isDark } = useTheme();
 

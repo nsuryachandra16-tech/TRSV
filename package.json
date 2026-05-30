@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/local-notifications": "^8.2.0",
     "@supabase/supabase-js": "^2.39.8",
     "autoprefixer": "^10.5.0",
     "express-rate-limit": "^8.5.2",
@@ -35,6 +37,7 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
     "@eslint/js": "^10.0.1",

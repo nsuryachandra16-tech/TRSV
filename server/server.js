@@ -53,8 +53,13 @@ const allowedOrigins = [
 ];
 
 const corsOriginHandler = (origin, callback) => {
-  if (!origin) return callback(null, true);
-  if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+  if (!origin || origin === 'null' || origin === 'file://') return callback(null, true);
+  if (
+    allowedOrigins.indexOf(origin) !== -1 ||
+    origin.startsWith('http://localhost:') ||
+    origin.includes('trsv-union.onrender.com') ||
+    origin.includes('onrender.com')
+  ) {
     return callback(null, true);
   }
   return callback(null, false); // Fail safely, but let CORS middleware handle it
@@ -199,9 +204,54 @@ io.use((socket, next) => {
 
 const messageRateLimits = new Map();
 
+// Intercept database query operations to broadcast created notifications in real time
+const originalQuery = pool.query;
+pool.query = async function (text, params, callback) {
+  let actualParams = params;
+  let actualCallback = callback;
+  if (typeof params === 'function') {
+    actualCallback = params;
+    actualParams = [];
+  }
+
+  const result = await originalQuery.call(pool, text, actualParams);
+
+  try {
+    const queryStr = typeof text === 'string' ? text.trim().toLowerCase() : '';
+    if (queryStr.includes('insert into notifications')) {
+      if (actualParams && actualParams.length >= 3) {
+        for (let i = 0; i < actualParams.length; i += 3) {
+          if (i + 2 < actualParams.length) {
+            const userId = actualParams[i];
+            const title = actualParams[i + 1];
+            const message = actualParams[i + 2];
+            
+            // Broadcast live socket event to user's personal channel room
+            io.to(`user_${userId}`).emit('new_notification', {
+              id: Math.floor(Math.random() * 100000000) + 1,
+              user_id: userId,
+              title: title,
+              message: message,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error emitting live notification socket event:', err);
+  }
+
+  return result;
+};
+
 // Configure Socket.io real-time event routing
 io.on('connection', (socket) => {
   console.log(`🔌 [Socket.io] Telemetry node linked (Auth: ${socket.user.uid}): ${socket.id}`);
+
+  // Join user's personal room for direct notification alerts
+  socket.join(`user_${socket.user.uid}`);
 
   // 1. Join Chat Room
   socket.on('join_channel', (channel_id) => {

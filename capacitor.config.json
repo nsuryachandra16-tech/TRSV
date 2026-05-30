@@ -8,5 +8,11 @@
     "allowNavigation": [
       "trsv-union.onrender.com"
     ]
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_launcher_round",
+      "iconColor": "#0ea5e9"
+    }
   }
 }

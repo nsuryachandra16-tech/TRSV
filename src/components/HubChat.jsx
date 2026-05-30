@@ -58,10 +58,13 @@ export default function HubChat({ user }) {
       ? 'https://trsv-union.onrender.com'
       : (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
     
+    const token = localStorage.getItem('trsv_session_token') || localStorage.getItem('token') || sessionStorage.getItem('token');
+
     // Connect socket
     socketRef.current = io(socketUrl, {
       transports: ['websocket'],
-      upgrade: false
+      upgrade: false,
+      auth: { token }
     });
 
     socketRef.current.on('connect', () => {
