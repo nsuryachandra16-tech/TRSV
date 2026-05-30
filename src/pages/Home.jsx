@@ -105,7 +105,7 @@ export default function Home() {
           </div>
 
           <h1 className="fluid-heading-1 font-bold text-slate-800 dark:text-white leading-[1.1] tracking-normal">
-            TRSV — The <span className="text-gradient-cyan">Governance & Protection</span> OS
+            TRSV — <span className="text-gradient-cyan">Telangana Rakshana Sena Vidyarthi</span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg">

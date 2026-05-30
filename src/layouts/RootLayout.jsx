@@ -19,7 +19,12 @@ export default function RootLayout() {
   ];
 
   const handleNavClick = (e, path) => {
-    if (path.startsWith('/#')) {
+    if (path === '/') {
+      if (location.pathname === '/') {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (path.startsWith('/#')) {
       e.preventDefault();
       const id = path.substring(2);
       if (location.pathname !== '/') {
@@ -45,7 +50,7 @@ export default function RootLayout() {
         <nav className="max-w-7xl mx-auto rounded-2xl glass-panel-light dark:glass-panel-dark glass-card-border-light dark:glass-card-border-dark px-4 sm:px-6 py-3 flex items-center justify-between shadow-premium-light dark:shadow-premium-dark relative">
           
           {/* Logo with TRSV Image */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" onClick={(e) => handleNavClick(e, '/')} className="flex items-center gap-2.5 group">
             <img 
               src="/trsv.jpeg" 
               alt="TRSV Logo" 

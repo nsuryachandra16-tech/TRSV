@@ -5,12 +5,14 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import AppRoutes from './routes/AppRoutes';
 import CommandPalette from './components/CommandPalette';
+import ScrollToTop from './components/ScrollToTop';
 
 const Router = window.Capacitor ? HashRouter : BrowserRouter;
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <ThemeProvider>
         <NotificationProvider>
           <AuthProvider>
