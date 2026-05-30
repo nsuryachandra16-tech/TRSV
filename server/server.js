@@ -386,6 +386,73 @@ io.on('connection', (socket) => {
 
       // Broadcast to the channel room
       io.to(channel_id).emit('new_message', fullMessage);
+
+      // Send background push notification to other users in the channel
+      try {
+        let recipientTokens = [];
+        if (channel_id === 'GH-Global') {
+          const tokenRes = await pool.query(
+            `SELECT DISTINCT f.token 
+             FROM user_fcm_tokens f
+             JOIN users u ON f.user_id = u.id
+             WHERE u.id != $1 
+               AND u.role IN ('dev', 'supreme_admin', 'president', 'state_president', 'vice_president', 'general_secretary', 'secretary')`,
+            [sender_id]
+          );
+          recipientTokens = tokenRes.rows.map(r => r.token);
+        } else if (channel_id.startsWith('GH-Constituency-')) {
+          const constName = channel_id.replace('GH-Constituency-', '');
+          const tokenRes = await pool.query(
+            `SELECT DISTINCT f.token 
+             FROM user_fcm_tokens f
+             JOIN users u ON f.user_id = u.id
+             JOIN constituencies c ON u.constituency_id = c.id
+             WHERE u.id != $1 
+               AND LOWER(c.constituency_name) = LOWER($2)
+               AND u.role IN ('dev', 'supreme_admin', 'president', 'state_president', 'vice_president', 'general_secretary', 'secretary')`,
+            [sender_id, constName]
+          );
+          recipientTokens = tokenRes.rows.map(r => r.token);
+        }
+
+        if (recipientTokens.length > 0 && firebaseApp) {
+          const payload = {
+            notification: {
+              title: `💬 ${channel_id === 'GH-Global' ? 'Statewide Lounge' : channel_id.replace('GH-Constituency-', '')}`,
+              body: `${senderName}: ${message_text.substring(0, 100)}${message_text.length > 100 ? '...' : ''}`
+            },
+            android: {
+              notification: {
+                icon: 'ic_launcher_round',
+                sound: 'default'
+              }
+            },
+            tokens: recipientTokens
+          };
+
+          const response = await admin.messaging().sendEachForMulticast(payload);
+          console.log(`📡 [Firebase Chat] Sent ${response.successCount} push notifications for channel ${channel_id} (${response.failureCount} failed).`);
+
+          if (response.failureCount > 0) {
+            const tokensToDelete = [];
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                const error = resp.error;
+                if (error && (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered')) {
+                  tokensToDelete.push(recipientTokens[idx]);
+                }
+              }
+            });
+
+            if (tokensToDelete.length > 0) {
+              await pool.query('DELETE FROM user_fcm_tokens WHERE token = ANY($1)', [tokensToDelete]);
+              console.log(`🧹 [Firebase Chat] Cleared ${tokensToDelete.length} stale FCM tokens.`);
+            }
+          }
+        }
+      } catch (fcmErr) {
+        console.error('🚨 [Firebase Chat Push Error]:', fcmErr.message);
+      }
     } catch (err) {
       console.error('🚨 [Socket.io Message Save Error]:', err.message);
     }
