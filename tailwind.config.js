@@ -9,9 +9,9 @@ export default {
     extend: {
       colors: {
         brand: {
-          light: '#34d399', // emerald-400
-          DEFAULT: '#10b981', // emerald-500
-          dark: '#059669', // emerald-600
+          light: '#38bdf8', // sky-400
+          DEFAULT: '#0284c7', // sky-600
+          dark: '#0369a1', // sky-700
         },
         slate: {
           55: '#f4f7fa',
@@ -36,47 +36,10 @@ export default {
           955: '#060814',
         },
         cyan: {
-          50: '#e6fffa',
-          100: '#b2f5ea',
-          200: '#81e6d9',
-          300: '#4fd1c5',
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
-          950: '#022c22',
-          205: '#a7f3d0',
-          450: '#34d399',
-          650: '#059669',
-          755: '#047857',
-        },
-        sky: {
-          50: '#fef9c3',
-          100: '#fef08a',
-          200: '#fde047',
-          300: '#facc15',
-          400: '#fbbf24',
-          500: '#eab308',
-          600: '#ca8a04',
-          700: '#a16207',
-          800: '#854d0e',
-          900: '#713f12',
-          950: '#451a03',
-        },
-        blue: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-          950: '#451a03',
+          205: '#86ecfd',
+          450: '#14c4e4',
+          650: '#0b83a1',
+          755: '#106982',
         },
         rose: {
           450: '#f75871',
@@ -101,9 +64,9 @@ export default {
         },
         trsv: {
           accent: {
-            light: '#fef08a', // yellow-200
-            DEFAULT: '#eab308', // yellow-500
-            dark: '#ca8a04', // yellow-600
+            light: '#22d3ee', // cyan-400
+            DEFAULT: '#0891b2', // cyan-600
+            dark: '#0e7490', // cyan-700
           },
           bg: {
             light: '#f8fafc', // slate-50
@@ -136,9 +99,9 @@ export default {
       boxShadow: {
         'premium-light': '0 10px 30px -10px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02)',
         'premium-dark': '0 10px 30px -10px rgba(0, 0, 0, 0.4), 0 1px 3px 0 rgba(0, 0, 0, 0.3)',
-        'glow-cyan': '0 0 20px rgba(16, 185, 129, 0.12)',
-        'glow-cyan-strong': '0 0 35px rgba(16, 185, 129, 0.25)',
-        'glow-blue': '0 0 20px rgba(234, 179, 8, 0.12)',
+        'glow-cyan': '0 0 20px rgba(6, 182, 212, 0.12)',
+        'glow-cyan-strong': '0 0 35px rgba(6, 182, 212, 0.25)',
+        'glow-blue': '0 0 20px rgba(14, 165, 233, 0.12)',
       },
       backdropBlur: {
         xs: '2px',
