@@ -217,22 +217,61 @@ function DistrictMesh({ feature, idx, onClickGH, mapLevel, selectedConstituency 
   );
 }
 
-// ─── Camera Controller ──────────────────────────────────────────────────────
-function CameraCtrl({ mapLevel }) {
+// ─── Camera Controller with deep multi-level zoom (State -> GH -> Constituency) ───
+function CameraCtrl({ mapLevel, selectedConstituency, constituencyCells }) {
   const { camera, size } = useThree();
   const mobile = size.width < 768;
-  const prevLevel = useRef(null);
+  const prevTarget = useRef(new THREE.Vector3(0, 0, 0));
 
   useEffect(() => {
-    if (prevLevel.current === mapLevel) return;
-    prevLevel.current = mapLevel;
+    let targetCam = new THREE.Vector3(0, mobile ? 13 : 9, mobile ? 14 : 10);
+    let targetLook = new THREE.Vector3(0, 0, 0);
 
     if (mapLevel === 'state') {
-      gsap.to(camera.position, { x: 0, y: mobile ? 13 : 9, z: mobile ? 14 : 10, duration: 1.8, ease: 'power2.inOut', onUpdate: () => camera.lookAt(0, 0, 0) });
-    } else {
-      gsap.to(camera.position, { x: -0.5, y: mobile ? 5 : 3.5, z: mobile ? 5.5 : 4, duration: 1.8, ease: 'power3.inOut', onUpdate: () => camera.lookAt(-0.3, 0, -0.3) });
+      targetCam.set(0, mobile ? 13 : 9, mobile ? 14 : 10);
+      targetLook.set(0, 0, 0);
+    } else if (mapLevel === 'gh' && !selectedConstituency) {
+      targetCam.set(-0.5, mobile ? 5 : 3.5, mobile ? 5.5 : 4);
+      targetLook.set(-0.3, 0, -0.3);
+    } else if (mapLevel === 'gh' && selectedConstituency) {
+      const name = selectedConstituency.constituency_name.toLowerCase();
+      const cell = constituencyCells.find(c => c.constituency.constituency_name.toLowerCase() === name);
+      if (cell) {
+        const poly = cell.poly;
+        const cx = poly.reduce((s, p) => s + p.x, 0) / poly.length;
+        const cz = poly.reduce((s, p) => s + p.z, 0) / poly.length;
+        
+        // Dynamic deep camera framing around the clicked constituency block
+        targetCam.set(cx, mobile ? 1.6 : 1.25, cz + (mobile ? 1.2 : 0.95));
+        targetLook.set(cx, 0, cz);
+      } else {
+        targetCam.set(-0.5, mobile ? 5 : 3.5, mobile ? 5.5 : 4);
+        targetLook.set(-0.3, 0, -0.3);
+      }
     }
-  }, [mapLevel, camera, mobile]);
+
+    gsap.killTweensOf(camera.position);
+    gsap.killTweensOf(prevTarget.current);
+
+    gsap.to(camera.position, {
+      x: targetCam.x,
+      y: targetCam.y,
+      z: targetCam.z,
+      duration: 1.8,
+      ease: 'power3.inOut'
+    });
+
+    gsap.to(prevTarget.current, {
+      x: targetLook.x,
+      y: targetLook.y,
+      z: targetLook.z,
+      duration: 1.8,
+      ease: 'power3.inOut',
+      onUpdate: () => {
+        camera.lookAt(prevTarget.current.x, prevTarget.current.y, prevTarget.current.z);
+      }
+    });
+  }, [mapLevel, selectedConstituency, constituencyCells, camera, mobile]);
 
   useEffect(() => {
     camera.position.set(0, mobile ? 13 : 9, mobile ? 14 : 10);
@@ -439,7 +478,11 @@ function SceneContents({ mapLevel, onClickGH, selectedConstituency, setSelectedC
         ))}
       </group>
 
-      <CameraCtrl mapLevel={mapLevel} />
+      <CameraCtrl
+        mapLevel={mapLevel}
+        selectedConstituency={selectedConstituency}
+        constituencyCells={constituencyCells}
+      />
     </>
   );
 }
@@ -453,11 +496,20 @@ export default function ThreeTelanganaMap({
     if (onHoverRegion) onHoverRegion(null);
   }, [setMapLevel, onHoverRegion]);
 
+  const handleBackgroundClick = useCallback(() => {
+    if (selectedConstituency) {
+      setSelectedConstituency(null);
+    }
+  }, [selectedConstituency, setSelectedConstituency]);
+
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       {mapLevel === 'gh' && (
         <button
-          onClick={() => setMapLevel('state')}
+          onClick={() => {
+            setMapLevel('state');
+            setSelectedConstituency(null);
+          }}
           style={{
             position: 'absolute',
             top: 10,
@@ -488,6 +540,7 @@ export default function ThreeTelanganaMap({
         camera={{ fov: 45, near: 0.1, far: 100 }}
         style={{ width: '100%', height: '100%' }}
         performance={{ min: 0.5 }}
+        onPointerDown={handleBackgroundClick}
       >
         <color attach="background" args={[null]} />
         <SceneContents
