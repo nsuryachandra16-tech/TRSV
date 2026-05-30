@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 const AuthContext = createContext(null);
 
@@ -393,6 +394,91 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // ─── Biometrics Authentication Helpers ─────────────────────────────────────
+  
+  const checkBiometricsAvailable = async () => {
+    if (!window.Capacitor) return { isAvailable: false };
+    try {
+      const result = await NativeBiometric.isAvailable();
+      const isConfigured = localStorage.getItem('trsv_biometrics_configured') === 'true';
+      const enrolledUser = localStorage.getItem('trsv_biometrics_user') || '';
+      return { 
+        isAvailable: result.isAvailable,
+        biometryType: result.biometryType,
+        isConfigured,
+        enrolledUser
+      };
+    } catch (err) {
+      console.warn('[Biometrics] Error checking availability:', err.message);
+      return { isAvailable: false };
+    }
+  };
+
+  const enableBiometricLogin = async (email, password) => {
+    if (!window.Capacitor) throw new Error('Biometrics is only supported on mobile devices.');
+    try {
+      await NativeBiometric.verifyIdentity({
+        reason: "Authorize TRSV Secure Biometric Authentication",
+        title: "Verify Identity",
+        subtitle: "Confirm with your fingerprint/face scanner",
+        description: "Enrolls your credentials securely in the hardware Keystore.",
+        maxAttempts: 3
+      });
+
+      await NativeBiometric.setCredentials({
+        username: email,
+        password: password,
+        server: "trsv.governance",
+      });
+
+      localStorage.setItem('trsv_biometrics_configured', 'true');
+      localStorage.setItem('trsv_biometrics_user', email);
+      return true;
+    } catch (err) {
+      console.error('[Biometrics] Enrollment failed:', err.message);
+      throw new Error(err.message || 'Biometric enrollment failed.');
+    }
+  };
+
+  const disableBiometricLogin = async () => {
+    if (!window.Capacitor) return;
+    try {
+      await NativeBiometric.deleteCredentials({
+        server: "trsv.governance"
+      });
+    } catch (err) {
+      console.warn('[Biometrics] Failed to clear secure credentials:', err.message);
+    }
+    localStorage.removeItem('trsv_biometrics_configured');
+    localStorage.removeItem('trsv_biometrics_user');
+  };
+
+  const loginWithBiometrics = async () => {
+    if (!window.Capacitor) throw new Error('Biometrics is only supported on mobile devices.');
+    try {
+      await NativeBiometric.verifyIdentity({
+        reason: "Access your secure TRSV coordination terminal",
+        title: "Biometric Login",
+        subtitle: "Scan your fingerprint to continue",
+        description: "Verify your identity using biometric sensors",
+        maxAttempts: 3
+      });
+
+      const creds = await NativeBiometric.getCredentials({
+        server: "trsv.governance"
+      });
+
+      if (!creds || !creds.username || !creds.password) {
+        throw new Error('No saved credentials found in secure keystore.');
+      }
+
+      return await login(creds.username, creds.password);
+    } catch (err) {
+      console.error('[Biometrics] Login failed:', err.message);
+      throw new Error(err.message || 'Biometric verification failed.');
+    }
+  };
+
   // ─── Context Value ───────────────────────────────────────────────────────
 
   const value = {
@@ -408,6 +494,10 @@ export const AuthProvider = ({ children }) => {
     confirmResetPassword,
     refreshProfile: () => fetchDbProfile(token),
     silentRefresh: () => silentRefresh(token),
+    checkBiometricsAvailable,
+    enableBiometricLogin,
+    disableBiometricLogin,
+    loginWithBiometrics,
   };
 
   return (

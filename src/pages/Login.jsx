@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Key, Mail, Lock, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Shield, Key, Mail, Lock, ShieldAlert, ArrowRight, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/GlassCard';
 import PremiumButton from '../components/PremiumButton';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, resetPassword, confirmResetPassword, currentUser, userProfile } = useAuth();
+  const { 
+    login, 
+    resetPassword, 
+    confirmResetPassword, 
+    currentUser, 
+    userProfile,
+    checkBiometricsAvailable,
+    loginWithBiometrics,
+    enableBiometricLogin 
+  } = useAuth();
+
+  // Biometrics States
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [biometricsConfigured, setBiometricsConfigured] = useState(false);
+  const [enrolledUser, setEnrolledUser] = useState('');
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [tempCredentials, setTempCredentials] = useState(null);
 
   React.useEffect(() => {
     if (currentUser && userProfile) {
@@ -21,6 +37,23 @@ export default function Login() {
       }
     }
   }, [currentUser, userProfile, navigate]);
+
+  React.useEffect(() => {
+    const initBiometrics = async () => {
+      const status = await checkBiometricsAvailable();
+      if (status.isAvailable) {
+        setBiometricsAvailable(true);
+        if (status.isConfigured) {
+          setBiometricsConfigured(true);
+          setEnrolledUser(status.enrolledUser);
+          if (status.enrolledUser) {
+            setEmail(status.enrolledUser);
+          }
+        }
+      }
+    };
+    initBiometrics();
+  }, [checkBiometricsAvailable]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +70,53 @@ export default function Login() {
   const [resetOtp, setResetOtp] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
 
+  const redirectUser = (user) => {
+    if (user.role === 'supreme_admin' || user.role === 'dev') {
+      navigate('/dashboard/command');
+    } else if (user.role === 'student') {
+      navigate('/dashboard/student');
+    } else {
+      navigate('/dashboard/leader');
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const user = await loginWithBiometrics();
+      setLoading(false);
+      redirectUser(user);
+    } catch (err) {
+      setLoading(false);
+      console.warn('[Biometrics Login] Failed:', err.message);
+      setError(err.message || 'Biometric authentication failed.');
+    }
+  };
+
+  const handleOptInBiometrics = async () => {
+    if (!tempCredentials) return;
+    try {
+      await enableBiometricLogin(tempCredentials.email, tempCredentials.password);
+      setShowBiometricPrompt(false);
+      redirectUser(tempCredentials.user);
+    } catch (err) {
+      console.error('[Biometrics Opt-In] Error:', err.message);
+      setError('Biometric enrollment failed. Logging in normally...');
+      setTimeout(() => {
+        setShowBiometricPrompt(false);
+        redirectUser(tempCredentials.user);
+      }, 1500);
+    }
+  };
+
+  const handleOptOutBiometrics = () => {
+    setShowBiometricPrompt(false);
+    if (tempCredentials) {
+      redirectUser(tempCredentials.user);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -44,15 +124,15 @@ export default function Login() {
 
     try {
       const user = await login(email, password);
-      setLoading(false);
-
-      // Perform dynamic redirection based on validated database role
-      if (user.role === 'supreme_admin' || user.role === 'dev') {
-        navigate('/dashboard/command');
-      } else if (user.role === 'student') {
-        navigate('/dashboard/student');
+      
+      // Prompt for biometric enrollment if supported but not configured for this user
+      if (biometricsAvailable && (!biometricsConfigured || enrolledUser !== email)) {
+        setTempCredentials({ email, password, user });
+        setShowBiometricPrompt(true);
+        setLoading(false);
       } else {
-        navigate('/dashboard/leader');
+        setLoading(false);
+        redirectUser(user);
       }
     } catch (err) {
       setLoading(false);
@@ -189,6 +269,22 @@ export default function Login() {
               {loading ? 'Decrypting Credentials...' : 'Sign In to Terminal'}
             </PremiumButton>
 
+            {biometricsConfigured && (
+              <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-slate-200/20 dark:border-slate-800/40">
+                <button
+                  type="button"
+                  onClick={handleBiometricLogin}
+                  className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-tr from-cyan-500/15 to-sky-500/15 hover:from-cyan-500/25 hover:to-sky-500/25 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 hover:text-cyan-300 shadow-glow-cyan/25 hover:shadow-glow-cyan/50 transition-all duration-300 cursor-pointer active:scale-95 animate-[pulse_2s_infinite]"
+                  title="Login with Biometrics"
+                >
+                  <Fingerprint className="w-7 h-7" />
+                </button>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">
+                  Scan Fingerprint to Unlock
+                </span>
+              </div>
+            )}
+
             <p className="text-center text-xs text-slate-400 mt-2">
               New to the state governance network?{' '}
               <Link to="/signup" className="font-semibold text-cyan-500 hover:underline">
@@ -324,6 +420,50 @@ export default function Login() {
                   </PremiumButton>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Biometric Opt-In Enrollment Modal */}
+      {showBiometricPrompt && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className="w-full max-w-sm animate-[scaleIn_0.2s_ease-out]">
+            <div className="bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 p-8 relative rounded-2xl shadow-2xl overflow-hidden text-center">
+              {/* Top light bar */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-sky-500 to-cyan-400" />
+              
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-sky-500/20 to-cyan-400/20 border border-cyan-400/30 flex items-center justify-center text-cyan-400 shadow-glow-cyan mb-4">
+                <Fingerprint className="w-8 h-8 animate-pulse" />
+              </div>
+
+              <h3 className="font-extrabold text-xl text-slate-850 dark:text-white">
+                Enable Biometric Login?
+              </h3>
+              <p className="text-xs text-slate-550 dark:text-slate-400 mt-2 mb-6 leading-relaxed">
+                Access your TRSV governance terminal faster next time by registering your fingerprint or face authentication.
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <PremiumButton
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={handleOptInBiometrics}
+                >
+                  Enable Secure Biometrics
+                </PremiumButton>
+                
+                <button
+                  type="button"
+                  onClick={handleOptOutBiometrics}
+                  className="w-full py-2.5 rounded-xl text-slate-400 hover:text-slate-350 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-850/40 transition-all duration-200"
+                >
+                  Skip for Now
+                </button>
+              </div>
             </div>
           </div>
         </div>,
