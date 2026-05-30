@@ -65,7 +65,6 @@ const MAT_GH_SEL = new THREE.MeshPhysicalMaterial({
   transparent: true,
   opacity: 1.0
 });
-const MAT_DIMMED = new THREE.MeshLambertMaterial({ color: 0x070c09, transparent: true, opacity: 0.15 });
 
 // Parse one GeoJSON feature
 function parseFeature(feature) {
@@ -106,6 +105,9 @@ function DistrictMesh({ feature, idx, onClickGH, mapLevel, selectedConstituency 
   const name = feature.properties?.name || '';
   const active = isGH(name);
 
+  // Hide all non-GH districts when zoomed in to GH for a clean focused look
+  if (mapLevel === 'gh' && !active) return null;
+
   const { shape, pts, cx, cz } = useMemo(() => parseFeature(feature), [feature]);
   const geom = useMemo(() => getGeom(`${idx}_${active}`, shape, active ? EXTRUDE_ACTIVE : EXTRUDE_LOCKED), [idx, shape, active]);
   
@@ -125,7 +127,6 @@ function DistrictMesh({ feature, idx, onClickGH, mapLevel, selectedConstituency 
 
   const currentMat = useMemo(() => {
     if (mapLevel === 'gh') {
-      if (!active) return MAT_DIMMED;
       if (isSelected) return MAT_GH_SEL;
       return hovered ? MAT_GH_HOVER : MAT_GH;
     }
@@ -133,6 +134,9 @@ function DistrictMesh({ feature, idx, onClickGH, mapLevel, selectedConstituency 
     if (isSelected) return MAT_GH_SEL;
     return hovered ? MAT_GH_HOVER : MAT_GH;
   }, [active, isSelected, mapLevel, hovered]);
+
+  const isHyd = name.toLowerCase().includes('hyderabad');
+  const borderColor = isHyd ? '#eab308' : '#10b981';
 
   return (
     <group>
@@ -149,8 +153,8 @@ function DistrictMesh({ feature, idx, onClickGH, mapLevel, selectedConstituency 
         <Line
           position={[0, active ? 0.26 : 0.13, 0]}
           points={pts}
-          color={active ? '#eab308' : '#1e3527'}
-          lineWidth={active ? 2.2 : 0.8}
+          color={active ? borderColor : '#1e3527'}
+          lineWidth={active ? 2.5 : 0.8}
           transparent
           opacity={active ? 0.95 : 0.35}
         />
@@ -325,6 +329,89 @@ function SceneContents({ mapLevel, onClickGH, selectedConstituency, setSelectedC
     return nodes;
   }, [ghConstituencies, mapLevel, features]);
 
+  // Generate sector boundary division lines and concentric zones inside Greater Hyderabad
+  const ghGrids = useMemo(() => {
+    if (mapLevel !== 'gh') return { partitions: [], rings: [] };
+
+    const hydList = [], medchalList = [], rrList = [];
+    ghConstituencies.forEach(c => {
+      const d = (c.district || '').toLowerCase();
+      if (d.includes('hyderabad')) hydList.push(c);
+      else if (d.includes('medchal')) medchalList.push(c);
+      else if (d.includes('rangareddy') || d.includes('ranga reddy')) rrList.push(c);
+    });
+
+    const partitions = [];
+    const rings = [];
+
+    const genRing = (cx, cz, r, color) => {
+      const pts = [];
+      const steps = 64;
+      for (let i = 0; i <= steps; i++) {
+        const angle = (i / steps) * 2 * Math.PI;
+        pts.push(new THREE.Vector3(cx + r * Math.cos(angle), 0.26, cz + r * Math.sin(angle)));
+      }
+      return { pts, color };
+    };
+
+    // 1. Hyderabad Grid (Inner zone: radius 0 to 0.6)
+    const hydCenter = getDistrictCenter('Hyderabad', features);
+    if (hydCenter && hydList.length > 0) {
+      const { cx, cz } = hydCenter;
+      const n = hydList.length;
+      for (let i = 0; i < n; i++) {
+        const midAngle = (i / n) * 2 * Math.PI + (Math.PI / n);
+        const endX = cx + 0.6 * Math.cos(midAngle);
+        const endZ = cz + 0.6 * Math.sin(midAngle);
+        partitions.push({
+          points: [new THREE.Vector3(cx, 0.26, cz), new THREE.Vector3(endX, 0.26, endZ)],
+          color: '#eab308'
+        });
+      }
+      rings.push(genRing(cx, cz, 0.6, '#eab308'));
+    }
+
+    // 2. Medchal Grid (Middle zone: radius 0.6 to 0.95)
+    const medchalCenter = getDistrictCenter('Medchal', features);
+    if (medchalCenter && medchalList.length > 0) {
+      const { cx, cz } = medchalCenter;
+      const n = medchalList.length;
+      for (let i = 0; i < n; i++) {
+        const midAngle = (i / n) * 2 * Math.PI + (Math.PI / n);
+        const startX = cx + 0.6 * Math.cos(midAngle);
+        const startZ = cz + 0.6 * Math.sin(midAngle);
+        const endX = cx + 0.95 * Math.cos(midAngle);
+        const endZ = cz + 0.95 * Math.sin(midAngle);
+        partitions.push({
+          points: [new THREE.Vector3(startX, 0.26, startZ), new THREE.Vector3(endX, 0.26, endZ)],
+          color: '#10b981'
+        });
+      }
+      rings.push(genRing(cx, cz, 0.95, '#10b981'));
+    }
+
+    // 3. Rangareddy Grid (Outer zone: radius 0.95 to 1.6)
+    const rrCenter = getDistrictCenter('Rangareddy', features);
+    if (rrCenter && rrList.length > 0) {
+      const { cx, cz } = rrCenter;
+      const n = rrList.length;
+      for (let i = 0; i < n; i++) {
+        const midAngle = (i / n) * 2 * Math.PI + (Math.PI / n);
+        const startX = cx + 0.95 * Math.cos(midAngle);
+        const startZ = cz + 0.95 * Math.sin(midAngle);
+        const endX = cx + 1.6 * Math.cos(midAngle);
+        const endZ = cz + 1.6 * Math.sin(midAngle);
+        partitions.push({
+          points: [new THREE.Vector3(startX, 0.26, startZ), new THREE.Vector3(endX, 0.26, endZ)],
+          color: '#10b981'
+        });
+      }
+      rings.push(genRing(cx, cz, 1.6, '#10b981'));
+    }
+
+    return { partitions, rings };
+  }, [ghConstituencies, mapLevel, features]);
+
   return (
     <>
       <ambientLight intensity={2.2} />
@@ -341,6 +428,28 @@ function SceneContents({ mapLevel, onClickGH, selectedConstituency, setSelectedC
             onClickGH={onClickGH}
             mapLevel={mapLevel}
             selectedConstituency={selectedConstituency}
+          />
+        ))}
+
+        {/* Holographic sector boundaries partitioning the districts into constituency zones */}
+        {mapLevel === 'gh' && ghGrids.partitions.map((part, i) => (
+          <Line
+            key={`part-${i}`}
+            points={part.points}
+            color={part.color}
+            lineWidth={1.2}
+            transparent
+            opacity={0.35}
+          />
+        ))}
+        {mapLevel === 'gh' && ghGrids.rings.map((ring, i) => (
+          <Line
+            key={`ring-${i}`}
+            points={ring.pts}
+            color={ring.color}
+            lineWidth={1.2}
+            transparent
+            opacity={0.35}
           />
         ))}
 
