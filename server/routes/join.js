@@ -25,6 +25,11 @@ router.post('/', async (req, res) => {
       message: 'Your application to join TRSV has been registered successfully! Our regional committee will review it shortly.', 
       request: result.rows[0] 
     });
+
+    await query(
+      'INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)',
+      [null, 'SUBMIT_JOIN_REQUEST', `Public application submitted by ${fullName} (${email}) to join TRSV`]
+    );
   } catch (error) {
     console.error('🚨 [Join Request Submit Error]:', error.message);
     res.status(500).json({ success: false, message: 'Failed to submit application. Please try again.', error: error.message });

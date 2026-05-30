@@ -623,6 +623,12 @@ router.post('/:id/discuss', requireRole(['student', 'secretary', 'general_secret
 
     // 4. Generate notifications
     const snippet = message.length > 60 ? `${message.substring(0, 60)}...` : message;
+
+    // Write audit log
+    await query(
+      'INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)',
+      [uid, 'COMPLAINT_COMMENT', `Added comment on Ticket #${id}: "${snippet.replace(/"/g, "'")}"`]
+    );
     
     if (uid === studentId) {
       // Sender is the student, notify the handler and active leaders of this constituency or supreme circles

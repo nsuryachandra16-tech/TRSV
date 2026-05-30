@@ -21,7 +21,8 @@ import {
   QrCode,
   MessageSquare,
   Fingerprint,
-  Lock
+  Lock,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -501,7 +502,13 @@ export default function DashboardLayout() {
           path: '/dashboard/announcements',
           icon: <Bell className="w-5 h-5" />,
           desc: 'Latest union announcements'
-        }
+        },
+        ...( ['supreme_admin', 'dev', 'state_president'].includes(userProfile?.role) ? [{
+          name: 'System Logs',
+          path: '/dashboard/logs',
+          icon: <Activity className="w-5 h-5" />,
+          desc: 'Real-time security audit logs'
+        }] : [])
       ]
     }
   ];

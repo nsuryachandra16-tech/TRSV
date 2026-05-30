@@ -177,14 +177,45 @@ router.get('/stats', requireRole(['student', 'secretary', 'general_secretary', '
  * 2. Fetch complete Activity Audit Logs (Supreme Admin Only)
  */
 router.get('/logs', requireRole(['supreme_admin', 'state_president', 'dev']), async (req, res) => {
+  const { search, type, limit } = req.query;
+  const parsedLimit = Math.min(parseInt(limit) || 200, 500);
+
   try {
-    const result = await query(
-      `SELECT al.*, u.full_name, u.role, u.email 
-       FROM realtime_activity_logs al
-       LEFT JOIN users u ON al.user_id = u.id
-       ORDER BY al.created_at DESC LIMIT 50`
-    );
-    res.json({ success: true, logs: result.rows });
+    let queryStr = `
+      SELECT al.*, u.full_name, u.role, u.email 
+      FROM realtime_activity_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+    `;
+    const conditions = [];
+    const params = [];
+
+    if (type) {
+      params.push(type);
+      conditions.push(`al.activity_type = $${params.length}`);
+    }
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(al.details ILIKE $${params.length} OR u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR al.activity_type ILIKE $${params.length})`);
+    }
+
+    if (conditions.length > 0) {
+      queryStr += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    params.push(parsedLimit);
+    queryStr += ` ORDER BY al.created_at DESC LIMIT $${params.length}`;
+
+    const result = await query(queryStr, params);
+
+    // Fetch distinct activity types to populate filter drop-downs dynamically
+    const typesResult = await query('SELECT DISTINCT activity_type FROM realtime_activity_logs WHERE activity_type IS NOT NULL AND activity_type != \'\' ORDER BY activity_type ASC');
+
+    res.json({
+      success: true,
+      logs: result.rows,
+      activityTypes: typesResult.rows.map(r => r.activity_type)
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

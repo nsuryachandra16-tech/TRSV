@@ -246,7 +246,7 @@ router.post('/signup', async (req, res) => {
     );
 
     // Write audit log
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       userId,
       'SIGNUP',
       `Student profile created and authenticated locally via JWT`
@@ -289,7 +289,7 @@ router.post('/login', async (req, res) => {
 
       console.log('👑 [Supreme Auth] Supreme Admin connected successfully.');
 
-      await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+      await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
         'SUPREME_ADMIN_UID',
         'SUPREME_LOGIN',
         'Supreme Admin terminal session synchronized'
@@ -345,7 +345,7 @@ router.post('/login', async (req, res) => {
       [user.id]
     );
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       user.id,
       'LOGIN',
       'Student authenticated successfully via local authority'
@@ -482,7 +482,7 @@ router.post('/update-college', async (req, res) => {
     );
 
     // Write audit log
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       decodedUser.uid,
       'PROFILE_MAP_UPDATE',
       `Campus pinned dynamically: ${trimmedName} bound to constituency #${constituencyId}`
@@ -649,7 +649,7 @@ router.post('/reset-password', async (req, res) => {
     );
 
     // Write audit log
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       user.id,
       'PASSWORD_RESET',
       'Student account access credentials updated and reset successfully via DB-backed OTP'

@@ -382,7 +382,7 @@ router.post('/update-status', requireRole(['supreme_admin', 'state_president', '
     `, [record.user_id, `Your digital governance ID status has been changed to "${newStatus}" by the Supreme Command.`]);
 
     // Create system audit activity log
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'MODIFY_IDENTITY',
       `Modified identity state of '${record.full_name}' (${record.trsv_member_id}) to '${newStatus}'`

@@ -99,7 +99,7 @@ router.post('/', requireRole(['general_secretary', 'president', 'state_president
       );
     }
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       authorUid,
       'CREATE_ANNOUNCEMENT',
       `Circular bulletin '${title}' published targeting audience '${targetAudience || 'all'}'`
@@ -129,7 +129,7 @@ router.delete('/:id', requireRole(['supreme_admin', 'state_president', 'dev']), 
 
     await query('DELETE FROM announcements WHERE id = $1', [id]);
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       authorUid,
       'DELETE_ANNOUNCEMENT',
       `Circular bulletin '${title}' (ID: ${id}) deleted by admin/dev`

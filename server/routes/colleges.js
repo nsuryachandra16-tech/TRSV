@@ -54,7 +54,7 @@ router.post('/', requireRole(['supreme_admin', 'state_president', 'dev']), async
       [collegeName, constituencyId]
     );
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'CREATE_COLLEGE',
       `Academic node '${collegeName}' registered and bound to constituency #${constituencyId}`
@@ -80,7 +80,7 @@ router.delete('/:id', requireRole(['supreme_admin', 'state_president', 'dev']), 
 
     await query('DELETE FROM colleges WHERE id = $1', [id]);
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'DELETE_COLLEGE',
       `College campus '${check.rows[0].college_name}' removed from statewide list`

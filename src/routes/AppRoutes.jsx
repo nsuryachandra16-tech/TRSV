@@ -40,6 +40,7 @@ const DigitalIdCard = lazy(() => import('../pages/DigitalIdCard'));
 const PublicVerification = lazy(() => import('../pages/PublicVerification'));
 const QrScanExperience = lazy(() => import('../pages/QrScanExperience'));
 const IdManagement = lazy(() => import('../pages/IdManagement'));
+const SystemLogs = lazy(() => import('../pages/SystemLogs'));
 
 // Dashboards
 const StudentDashboard = lazy(() => import('../pages/StudentDashboard'));
@@ -143,6 +144,11 @@ export default function AppRoutes() {
           <Route path="messenger" element={
             <ProtectedRoute allowedRoles={['secretary', 'general_secretary', 'vice_president', 'president', 'state_president', 'supreme_admin']}>
               <MessengerPage />
+            </ProtectedRoute>
+          } />
+          <Route path="logs" element={
+            <ProtectedRoute allowedRoles={['supreme_admin']}>
+              <SystemLogs />
             </ProtectedRoute>
           } />
         </Route>

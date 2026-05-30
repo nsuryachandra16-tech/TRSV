@@ -233,7 +233,7 @@ router.post('/', requireRole(['supreme_admin', 'state_president', 'dev']), async
     );
 
     // Audit logs
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'CREATE_CONSTITUENCY',
       `Constituency '${constituencyName}' added to district '${district}'`
@@ -267,7 +267,7 @@ router.put('/:id', requireRole(['supreme_admin', 'state_president', 'dev']), asy
       [constituencyName, district, status, id]
     );
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'UPDATE_CONSTITUENCY',
       `Constituency #${id} status set to '${status}'`
@@ -294,7 +294,7 @@ router.delete('/:id', requireRole(['supreme_admin', 'state_president', 'dev']), 
     // Delete query automatically triggers cascade deletes on bound colleges
     await query('DELETE FROM constituencies WHERE id = $1', [id]);
 
-    await query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [
+    await query('INSERT INTO realtime_activity_logs (user_id, activity_type, details) VALUES ($1, $2, $3)', [
       req.user.uid || 'SUPREME_ADMIN_UID',
       'DELETE_CONSTITUENCY',
       `Constituency '${check.rows[0].constituency_name}' removed from statewide system`

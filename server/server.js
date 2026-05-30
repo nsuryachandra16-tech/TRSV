@@ -527,6 +527,8 @@ httpServer.listen(PORT, async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaint_timeline_complaint_id ON complaint_timeline(complaint_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_realtime_activity_logs_created_at ON realtime_activity_logs(created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_realtime_activity_logs_activity_type ON realtime_activity_logs(activity_type)`);
     console.log('🔹 [Database] Users password recovery and performance indexes synchronized.');
   } catch (err) {
     console.error('🚨 [Database] Failed to sync password recovery or indexes:', err.message);
